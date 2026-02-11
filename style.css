@@ -1,0 +1,426 @@
+/*
+ Reset de body
+ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ Aparência
+ */
+:root {
+  --darkbrown: #382e2e;
+  --lightbrown: #503b1f;
+  --bg-degrees: 45deg;
+  --switchbutton: url(./assets/brasaoimperiobr.png);
+
+  --text-color: #c0c0c0;
+  --body-font: "Inter", sans-serif;
+  --body-bg: no-repeat
+    linear-gradient(
+      var(--bg-degrees),
+      var(--darkbrown) 0,
+      24%,
+      var(--lightbrown) 100%
+    )
+    center/cover;
+
+  --stroke-color: silver;
+  --surface-color: #ffffff1a;
+  --surface-color-hover: #ffffff0d;
+  --highlight-color: #ffd700;
+}
+
+.light {
+  --body-bg: no-repeat
+    linear-gradient(var(--bg-degrees), var(--rose) 0, 12%, var(--golden) 100%)
+    center/cover;
+
+  --rose: #c6b5a0;
+  --golden: #9a6413;
+  --bg-degrees: 45deg;
+  --switchbutton: url(./assets/brasaoimperiobrzerodegrade.png);
+
+  --text-color: silver;
+
+  --stroke-color: #ffd700;
+  --surface-color: #0000000d;
+  --surface-color-hover: #00000005;
+  --highlight-color: #ffd700;
+}
+
+.zoom {
+  background-color: none;
+  transition: ease-in-out; /* Animation */
+  transition-duration: 1s;
+  animation: ease-in-out;
+  animation-timeline: var(--body-font);
+  animation-range: initial 50% cover 100%;
+  animation-range-start: 50%;
+  animation-range-end: 100%;
+  transform: scale(1);
+
+  -webkit-animation: ease-in-out;
+  -webkit-animation-timeline: var(--body-font);
+  -webkit-animation-range: initial 50 cover 100%;
+  -webkit-animation-range-start: 50%;
+  -webkit-animation-range-end: 100%;
+}
+
+.zoom:hover {
+  background-color: none;
+  -webkit-animation: reveal 1ms ease-out reverse;
+  animation: reveal 1ms ease-out reverse;
+  animation-timeline: view();
+  transition: transform 13s; /* Animation */
+  animation-range: entry 50% cover 100%;
+  transform: scale(1);
+}
+
+/*
+ Corpo da Página
+ */
+html,
+body {
+  min-height: 100vh;
+  background: var(--body-bg);
+}
+
+body * {
+  color: var(--text-color);
+}
+
+ul {
+  list-style: none;
+}
+
+/*
+ Perfil
+ */
+.container {
+  width: 80%;
+  max-width: 70rem;
+  margin: 0 auto;
+  padding-top: 1.5rem;
+  font-family: var(--body-font);
+  text-align: center;
+  font-size: smaller;
+  font-weight: 1000;
+}
+
+#profile {
+  margin-bottom: 1.5rem;
+}
+
+.avatar {
+  width: 7rem;
+  height: 7rem;
+  margin: 0 auto 1.5rem;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 2px solid var(--stroke-color); 
+}
+
+.avatar img {
+  width: 100%;
+  object-fit: cover;
+}
+
+/*
+Temas
+*/
+
+#switch {
+  content: "";
+  width: 51px;
+  position: relative;
+  margin: 0 auto;
+  background: var(--golden);
+  -webkit-backdrop-filter: blur(0.25rem);
+  backdrop-filter: blur(0.25rem);
+  border-radius: 18%;
+}
+
+#switch::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 12px;
+  background: var(--golden);
+  border: 1px solid var(--stroke-color);
+  -webkit-backdrop-filter: blur(0.25rem);
+  backdrop-filter: blur(0.25rem);
+  border-radius: 18%;
+}
+
+#switch button {
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: silver;
+
+  position: absolute;
+  bottom: -50%;
+  left: 0;
+  z-index: 1;
+  transform: translateY(-50%);
+
+  transform: rotate(360deg);
+
+  transition: outline 0.5s;
+  animation: slide-back 0.5s;
+}
+
+.brasaoimperiobr img #switch button {
+  width: 100%;
+  position: absolute;
+  object-position: initial bottom;
+  object-fit: cover fill;
+  image-rendering: optimizeQuality;
+}
+
+#switch button:hover {
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+
+  background: silver;
+
+  outline: 8px solid silver;
+  outline-style: solid;
+  outline-offset: 3px;
+  border-radius: 50%;
+  position: absolute;
+  bottom: -50%;
+  left: 0;
+  z-index: 1;
+}
+
+.light #switch button {
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: silver;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+  transform: translateY(-50%);
+  transition: outline 0.5s;
+  animation: slide-back 0.5s;
+  animation: slide-in 0.5s forwards;
+}
+
+.brasaoimperiobr img .light #switch button {
+  width: 100%;
+  position: absolute;
+  object-position: initial bottom;
+  object-fit: cover fill;
+  image-rendering: optimizeQuality;
+}
+
+.light #switch button:hover {
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+
+  background: silver;
+
+  outline: 4px solid var(--highlight-color);
+  outline-style: dotted;
+  outline-offset: 2.5px;
+
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+}
+
+/*
+Links
+*/
+#links-1 {
+  display: inline-flex;
+  flex-direction: fill;
+  gap: 1rem;
+  padding: 2rem 0%;
+  font-family: var(--body-font);
+  text-align: center;
+  font-size: smaller;
+  font-weight: 400;
+}
+
+#links-1 a {
+  width: 6rem;
+  height: 6rem;
+  margin: 0 auto 
+  border: 2px solid var(--stroke-color);
+  display: inline-flex;
+  flex-direction: fill;
+  align-items: center;
+  justify-content: center;
+  padding:50%;
+  background: var(--surface-color);
+  margin: 0 auto 1rem;
+  overflow: hidden;
+  border-radius: 50%;
+  backdrop-filter: blur(0.25rem);
+  -webkit-backdrop-filter: blur(0.25rem);
+  text-decoration: none;
+  font-size: smaller;
+  font-weight: 400;
+  transition: var(--bg-degrees) 1.4s;
+}
+
+#links-1 a:hover {
+  border: 2px solid var(--highlight-color);
+  -webkit-text-fill-color: var(--highlight-color);
+  animation: 0.5s forwards;
+  background: var(--lightbrown);
+}
+
+.light #links-1 a:hover {
+  border: 2px solid var(--highlight-color);
+  -webkit-text-fill-color: var(--highlight-color);
+  animation: 0.5s forwards;
+  background: var(--golden);
+}
+
+#links-2 {
+  -webkit-animation: reveal 1ms ease-in-out both;
+  animation: reveal 1ms ease-in-out both;
+  animation-timeline: view();
+  animation-range: cover cover 200px;
+  animation-range-end: 500px;
+  display: -webkit-flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  font-family: var(--body-font);
+  text-align: center;
+  font-size: large;
+  font-weight: 1000;
+}
+
+#links-2 a {
+  display: -webkit-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1rem;
+  background: var(--surface-color);
+  border: 1px solid var(--stroke-color);
+  border-radius: 0.5rem;
+  backdrop-filter: blur(0.25rem);
+  -webkit-backdrop-filter: blur(0.25rem);
+  text-decoration: none;
+  font-size: large;
+  font-weight: 400;
+  transition: background 1.4s;
+}
+
+#links-2 a:hover {
+  background: var(--surface-color-hover);
+  border: 1.5px solid silver;
+  -webkit-text-fill-color: silver;
+  animation: 0.5s forwards;
+  background: var(--lightbrown);
+}
+
+.light #links-2 a:hover {
+  background: var(--golden);
+  border: 1.5px solid var(--text-color);
+  -webkit-text-fill-color: var(--highlight-color);
+  animation: 0.5s forwards;
+}
+
+/*
+ * Redes Sociais
+ */
+#social {
+  display: -webkit-flex;
+  justify-content: center;
+  padding: 0,5rem 0;
+  font-size: 6rem;
+}
+
+#social a {
+  display: -webkit-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  transition: var(--bg-degrees) 0.5s;
+  border-radius: 60%;
+}
+
+#social a:hover {
+  background: var(--highlight-color)
+}
+
+.light #social a:hover {
+  background: var(--highlight-color);
+}
+
+/*
+ * Animação
+ */
+
+.c-indicator {
+  -webkit-animation: scroll 1ms ease-in-out;
+  animation: scroll 1ms ease-in-out;
+  animation-timeline: scroll(root);
+  background-color: var(--lightbrown);
+  transform-origin: left;
+  height: var(--scroll-height);
+  inset: 0;
+  position: fixed;
+}
+
+@keyframes slide-in {
+  from {
+    left: 0;
+  }
+  to {
+    left: 100%;
+    transform: translate(-90%, -50%);
+  }
+}
+
+@keyframes slide-back {
+  from {
+    left: 50%;
+  }
+  to {
+    left: 0;
+  }
+}
+
+@keyframes scroll {
+  from {
+    scale: 0 1;
+  }
+
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    clip-path: inset(45% 20% 45% 20%);
+  }
+
+  to {
+    opacity: 1;
+    clip-path: inset(0% 0% 0% 0%);
+  }
+}
