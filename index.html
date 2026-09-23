@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,nofollow" />
-    <meta name="theme-color" content="#382e2e" />
+    <meta name="theme-color" content="#0b1226" />
     <meta
       name="description"
       content="Casa Principesca de Novgorod e Ducal da Carantânia — instituição memorial dedicada à preservação e transmissão da herança eslava."
@@ -41,41 +41,64 @@
   </head>
 
   <body>
-    <!-- Cena de fundo: bandeira animada + véu de profundidade + raios de luz + textura -->
+    <!-- Cena de fundo: céu de Kiev, palácio e a bandeira hasteada.
+
+         Ordem das camadas, do fundo para a frente: céu (no <body>), estrelas,
+         astro (sol ou lua), nuvens distantes, nuvens médias, palácio com o
+         mastro e a bandeira, nuvens que passam à FRENTE da bandeira e, por
+         fim, o véu de profundidade e o grão.
+
+         Cada faixa de nuvens tem dois ladrilhos iguais lado a lado: quando o
+         conjunto desliza exatamente a largura de um ladrilho, a emenda cai
+         no mesmo ponto e o movimento é contínuo.
+
+         O flamular da bandeira são quadros pré-renderizados (ondulação, luz
+         e sombra calculadas a partir da mesma superfície de ondas) que se
+         alternam em fusão cruzada. A rolagem da página controla o vento:
+         --wind acelera o flamular e as nuvens e inclina o mastro. -->
     <div class="scene" aria-hidden="true">
-      <div class="scene__flag"></div>
+      <div class="scene__stars"></div>
+      <div class="scene__orb"></div>
+      <div class="scene__haze"></div>
+
+      <div class="scene__clouds scene__clouds--far">
+        <i></i><i></i>
+      </div>
+      <div class="scene__clouds scene__clouds--mid">
+        <i></i><i></i>
+      </div>
+
+      <div class="scene__city">
+        <div class="scene__palace"></div>
+        <div class="scene__palace-lights"></div>
+        <div class="scene__mast">
+          <div class="scene__flag-stage">
+            <div class="scene__flag-halo"></div>
+            <div class="scene__flag">
+              <div class="scene__flag-still"></div>
+              <div class="scene__flag-frame scene__flag-frame--2"></div>
+              <div class="scene__flag-frame scene__flag-frame--3"></div>
+              <div class="scene__flag-frame scene__flag-frame--4"></div>
+            </div>
+            <div class="scene__flag-sheen"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scene__clouds scene__clouds--near">
+        <i></i><i></i>
+      </div>
+
       <div class="scene__vignette"></div>
-      <div class="scene__rays"></div>
       <div class="scene__grain"></div>
     </div>
-
-    <!-- Filtro SVG usado para dar à bandeira um leve ondular de tecido -->
-    <svg class="sr-only-svg" aria-hidden="true" focusable="false">
-      <filter id="cloth-wave" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence
-          type="fractalNoise"
-          baseFrequency="0.008 0.014"
-          numOctaves="2"
-          seed="7"
-          result="noise"
-        >
-          <animate
-            attributeName="baseFrequency"
-            dur="26s"
-            values="0.008 0.014;0.012 0.009;0.008 0.014"
-            repeatCount="indefinite"
-          />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </svg>
 
     <div class="progress-banner" id="progressBanner" aria-hidden="true"></div>
 
     <div class="container">
       <header class="hero">
         <div id="profile">
-          <div class="avatar">
+          <div class="avatar reveal reveal--zoom">
             <picture>
               <source id="avatarSource" srcset="./assets/card.webp" type="image/webp" />
               <img
@@ -87,9 +110,9 @@
               />
             </picture>
           </div>
-          <h1>Casa Principesca de Novgorod</h1>
-          <p class="subtitle">Ducal da Carantânia</p>
-          <div class="dates">
+          <h1 class="reveal reveal--fade">Casa Principesca de Novgorod</h1>
+          <p class="subtitle reveal reveal--fade">Ducal da Carantânia</p>
+          <div class="dates reveal reveal--fade">
             <p>Período da Restauração: 862–1136</p>
             <p>(período principesco de Novgorod)</p>
           </div>
@@ -343,7 +366,7 @@
             <picture>
               <source srcset="./assets/brasao-grandes-armas.webp" type="image/webp" />
               <img
-                class="legado-emblem"
+                class="legado-emblem reveal reveal--zoom"
                 src="./assets/brasao-grandes-armas.png"
                 alt="Grandes Armas da Casa Principesca de Novgorod"
                 loading="lazy"
@@ -351,7 +374,7 @@
               />
             </picture>
 
-            <div class="legado-text">
+            <div class="legado-text reveal reveal--right">
               <p class="texto-justificado">
                 A Casa Principesca de Novgorod encontra suas raízes no período compreendido entre
                 os séculos IX e XII, quando Novgorod se afirmou como um dos mais importantes
@@ -411,10 +434,12 @@
           <div class="video-grid">
             <div class="video-card reveal">
               <div class="video-wrapper">
-                <iframe 
-                width="560" height="315" 
-                src="https://www.youtube.com/embed/o2MtxnK5oSA?si=Q4m4RwC1e3ejcG0Y" 
-                title="YouTube video player" frameborder="0" 
+                <iframe
+                loading="lazy"
+                title="Vídeo: Os Eslavos — as misteriosas origens de um povo"
+                src="https://www.youtube-nocookie.com/embed/o2MtxnK5oSA?si=Q4m4RwC1e3ejcG0Y"
+                
+                frameborder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
                 referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
               </div>
@@ -423,9 +448,12 @@
 
             <div class="video-card reveal">
               <div class="video-wrapper">
-                <iframe width="560" height="315" 
-                src="https://www.youtube.com/embed/kpZ_KqdsYOw?si=UQiMsdWHCS8Ae6A4" 
-                title="YouTube video player" frameborder="0" 
+                <iframe
+                loading="lazy"
+                title="Vídeo: Os Rus de Kiev"
+                src="https://www.youtube-nocookie.com/embed/kpZ_KqdsYOw?si=UQiMsdWHCS8Ae6A4"
+                
+                frameborder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
                 referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
               </div>

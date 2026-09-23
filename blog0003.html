@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,nofollow" />
-    <meta name="theme-color" content="#382e2e" />
+    <meta name="theme-color" content="#0b1226" />
     <meta
       name="description"
       content="Uma reflexão sobre o sentido de uma restauração pró-memória: continuidade, símbolos, fontes e responsabilidade diante do passado."
@@ -41,34 +41,57 @@
   </head>
 
   <body>
-    <!-- Cena de fundo: bandeira animada + véu de profundidade + raios de luz + textura -->
+    <!-- Cena de fundo: céu de Kiev, palácio e a bandeira hasteada.
+
+         Ordem das camadas, do fundo para a frente: céu (no <body>), estrelas,
+         astro (sol ou lua), nuvens distantes, nuvens médias, palácio com o
+         mastro e a bandeira, nuvens que passam à FRENTE da bandeira e, por
+         fim, o véu de profundidade e o grão.
+
+         Cada faixa de nuvens tem dois ladrilhos iguais lado a lado: quando o
+         conjunto desliza exatamente a largura de um ladrilho, a emenda cai
+         no mesmo ponto e o movimento é contínuo.
+
+         O flamular da bandeira são quadros pré-renderizados (ondulação, luz
+         e sombra calculadas a partir da mesma superfície de ondas) que se
+         alternam em fusão cruzada. A rolagem da página controla o vento:
+         --wind acelera o flamular e as nuvens e inclina o mastro. -->
     <div class="scene" aria-hidden="true">
-      <div class="scene__flag"></div>
+      <div class="scene__stars"></div>
+      <div class="scene__orb"></div>
+      <div class="scene__haze"></div>
+
+      <div class="scene__clouds scene__clouds--far">
+        <i></i><i></i>
+      </div>
+      <div class="scene__clouds scene__clouds--mid">
+        <i></i><i></i>
+      </div>
+
+      <div class="scene__city">
+        <div class="scene__palace"></div>
+        <div class="scene__palace-lights"></div>
+        <div class="scene__mast">
+          <div class="scene__flag-stage">
+            <div class="scene__flag-halo"></div>
+            <div class="scene__flag">
+              <div class="scene__flag-still"></div>
+              <div class="scene__flag-frame scene__flag-frame--2"></div>
+              <div class="scene__flag-frame scene__flag-frame--3"></div>
+              <div class="scene__flag-frame scene__flag-frame--4"></div>
+            </div>
+            <div class="scene__flag-sheen"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scene__clouds scene__clouds--near">
+        <i></i><i></i>
+      </div>
+
       <div class="scene__vignette"></div>
-      <div class="scene__rays"></div>
       <div class="scene__grain"></div>
     </div>
-
-    <!-- Filtro SVG usado para dar à bandeira um leve ondular de tecido -->
-    <svg class="sr-only-svg" aria-hidden="true" focusable="false">
-      <filter id="cloth-wave" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence
-          type="fractalNoise"
-          baseFrequency="0.008 0.014"
-          numOctaves="2"
-          seed="7"
-          result="noise"
-        >
-          <animate
-            attributeName="baseFrequency"
-            dur="26s"
-            values="0.008 0.014;0.012 0.009;0.008 0.014"
-            repeatCount="indefinite"
-          />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </svg>
 
     <div class="progress-banner" id="progressBanner" aria-hidden="true"></div>
 
@@ -154,7 +177,7 @@
             Voltar ao blog
           </a>
 
-          <header class="post__header">
+          <header class="post__header reveal reveal--fade">
             <h1>O que significa restaurar uma Casa?</h1>
             <p class="post__meta">Casa Principesca de Novgorod</p>
           </header>
@@ -162,7 +185,7 @@
           <!-- Galeria de imagens de destaque: .post__hero organiza-se em
                grade responsiva (ver style.css §7b), adaptando-se de uma
                coluna única no celular a várias colunas em telas largas. -->
-          <div class="post__hero">
+          <div class="post__hero reveal reveal--zoom">
             <picture>
               <source srcset="./assets/blog0003.webp" type="image/webp" />
               <img
@@ -174,7 +197,7 @@
             </picture>
           </div>
 
-          <div class="post__body">
+          <div class="post__body reveal">
             <p>Há algo de particularmente delicado na palavra “restauração” quando ela se aplica a uma instituição cuja história atravessou séculos. Restaurar uma construção significa, em alguma medida, devolver forma a algo que permanece materialmente diante de nós. Quando aquilo que se pretende restaurar pertence ao domínio da memória, porém, a questão se torna mais complexa, porque o passado não está simplesmente esperando para ser reconstruído. Ele chega ao presente por meio de documentos, vestígios, interpretações, tradições e lembranças, e cada geração que se aproxima dele precisa decidir como lidar com aquilo que recebeu.</p>
             <p>É nesse terreno que se situa a restauração pró-memória da Casa Principesca de Novgorod.</p>
             <p>Novgorod ocupa um lugar singular na história do mundo eslavo oriental. Entre 862 e 1136, a cidade esteve inserida no período principesco que antecedeu a instituição da República de Novgorod. Ao longo desses séculos, formou-se uma experiência histórica marcada por relações políticas próprias, intensa atividade comercial, circulação cultural, produção escrita e uma vida urbana cuja complexidade pode ser percebida em fontes que continuam despertando o interesse de historiadores, linguistas e arqueólogos.</p>
@@ -224,7 +247,7 @@
             </p>
           </div>
 
-          <div class="post__actions">
+          <div class="post__actions reveal reveal--fade">
             <a href="./index.html#blog" class="blog-post__link">← Voltar ao blog</a>
             <button class="share-btn" type="button" aria-label="Compartilhar publicação">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">

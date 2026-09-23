@@ -6,9 +6,10 @@
    Índice geral:
    1.  Reset & tokens (design system: cores, tipografia fluida, espaçamento,
        raios, durações/easing de transição)
-   2.  Cena de fundo animada (bandeira com deriva/ondulação + filtro SVG de
-       tecido, véu de profundidade, raios de luz, textura de grão,
-       transição de entrada de página)
+   2.  Cena de fundo animada (bandeira de tecido em painel responsivo, com
+       filtros SVG de deformação e iluminação, dobras, brilho especular,
+       sombra projetada, véu de profundidade, raios de luz, textura de grão,
+       transições de entrada e saída de página)
    3.  Base tipográfica e utilitários (títulos, links, <picture>/<img>,
        transições globais de tema claro/escuro)
    4.  Barra de progresso (rolagem)
@@ -21,7 +22,8 @@
    9.  Legado (texto + emblema)
    10. Multimídia
    11. Rodapé / redes sociais
-   12. Animações de revelação ao rolar (com atrasos escalonados)
+   12. Animações de revelação ao rolar (escalonamento automático) e
+       micro-interações (brilho de hover, sublinhados, resposta ao toque)
    13. Toast (feedback de compartilhamento)
    14. Media queries — responsividade
    15. Acessibilidade (foco, movimento reduzido)
@@ -45,10 +47,12 @@
 }
 
 :root {
-  /* --- Paleta "Império" (tema escuro, padrão) --- */
-  --darkbrown: #382e2e;
-  --lightbrown: #503b1f;
-  --bg-degrees: 135deg;
+  /* --- Paleta "Noite sobre Kiev" (tema escuro, padrão) ---
+     O fundo do documento É o céu da cena: um degradê de noite alta, do
+     zênite ao horizonte, onde o brilho da cidade ainda toca as nuvens. */
+  --darkbrown: #0b1226;
+  --lightbrown: #3a3050;
+  --bg-degrees: 180deg;
 
   --ink: #d6d0c4;
   --ink-dim: #a89e8f;
@@ -66,12 +70,16 @@
   --shadow-2: 0 20px 48px -20px rgba(0, 0, 0, 0.65);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
-  --body-bg: radial-gradient(
-      ellipse at 50% -10%,
-      rgba(255, 215, 0, 0.08),
-      transparent 55%
-    ),
-    linear-gradient(var(--bg-degrees), var(--darkbrown) 0%, var(--lightbrown) 100%);
+  --body-bg: radial-gradient(ellipse at 78% 12%, rgba(150, 170, 220, 0.18), transparent 58%),
+    radial-gradient(ellipse at 40% 104%, rgba(214, 150, 96, 0.22), transparent 62%),
+    linear-gradient(
+      180deg,
+      #050a1a 0%,
+      #0b1226 32%,
+      #1b2344 62%,
+      #34355a 84%,
+      #4a3f52 100%
+    );
 
   /* --- Escala tipográfica fluida --- */
   --font-display: "Cinzel", "Times New Roman", serif;
@@ -103,12 +111,13 @@
   --dur-3: 0.9s;
 }
 
-/* --- Paleta "Restauração" (tema claro) ---
-   Corrige o problema de contraste do original: o texto passa a usar
-   tinta escura sobre o fundo claro, em vez de prata sobre prata. */
+/* --- Paleta "Dia sobre Kiev" (tema claro) ---
+   O mesmo céu, agora em plena luz: azul no alto, claro no horizonte.
+   A tinta é escura sobre o fundo claro (o original usava prata sobre
+   prata e não tinha contraste). */
 html.light {
-  --darkbrown: #d8c6a8;
-  --lightbrown: #9a6413;
+  --darkbrown: #2d4a6b;
+  --lightbrown: #7aa6ce;
   --bg-degrees: 135deg;
 
   --ink: #2c2115;
@@ -127,16 +136,37 @@ html.light {
   --shadow-2: 0 20px 48px -22px rgba(60, 40, 10, 0.4);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 
-  --body-bg: radial-gradient(
-      ellipse at 50% -10%,
-      rgba(255, 255, 255, 0.35),
-      transparent 55%
-    ),
-    linear-gradient(var(--bg-degrees), var(--darkbrown) 0%, var(--lightbrown) 100%);
+  --body-bg: radial-gradient(ellipse at 80% 8%, rgba(255, 240, 190, 0.5), transparent 58%),
+    linear-gradient(
+      180deg,
+      #3f7cb8 0%,
+      #6ba3d6 30%,
+      #a8cdea 58%,
+      #d8e8f4 80%,
+      #f2ead9 100%
+    );
 }
 
 /* -------------------------------------------------------------------------
-   2. Cena de fundo animada — bandeira, véu, raios, textura
+   2. Cena de fundo — céu de Kiev, palácio e bandeira hasteada
+
+   A cena é um cenário em profundidade, não um papel de parede:
+
+     céu          o próprio fundo do documento (gradiente de dia ou de noite)
+     estrelas     ladrilho, só à noite
+     astro        sol ou lua, com o halo que ilumina a cena
+     nuvens       três faixas contínuas em velocidades diferentes; a última
+                  passa À FRENTE da bandeira
+     palácio      silhueta em contraluz, com as janelas acesas à noite
+     mastro       nasce da cúpula e sustenta a bandeira
+     bandeira     quadros pré-renderizados (ondulação, luz e sombra vindas da
+                  mesma superfície de ondas) alternados em fusão cruzada
+
+   Nada disso usa filtros em tempo real: o navegador só compõe camadas e as
+   desloca por transform, o que se mantém fluido mesmo em telefones.
+
+   A rolagem da página controla o vento (--wind, definido por JS): acelera o
+   flamular e as nuvens, inclina o mastro e desloca as camadas em paralaxe.
    ------------------------------------------------------------------------- */
 html,
 body {
@@ -145,24 +175,63 @@ body {
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+
+  /* Controles da cena — o JS escreve --wind e --scroll-y */
+  --wind: 1;
+  --scroll-y: 0;
+  --palace-h: clamp(180px, 36vh, 480px);
+  --mast-h: clamp(145px, 34vh, 370px);
+  /* A bandeira é proporcional ao mastro, como num edifício real; o mínimo
+     garante que ela continue identificável nas telas menores. */
+  --flag-w: max(190px, calc(var(--mast-h) * 0.82));
+  --flag-h: calc(var(--flag-w) * 0.709);
+  --city-x: 31%;
+  --flag-opacity: 0.82;
 }
 
 body {
   background: var(--body-bg);
+  background-attachment: fixed;
+  overflow-x: hidden;
   transition: background var(--dur-3) var(--ease-royal);
-  animation: page-enter 0.7s var(--ease-royal) both;
+  animation: page-enter 0.45s var(--ease-royal) both;
 }
 
-/* Transição suave de entrada de página (fade + leve elevação) */
+/* Transição suave de entrada de página.
+   Importante: o <body> anima apenas a opacidade. Qualquer "transform" no
+   <body> (mesmo que zero, quando a animação usa fill "both") o tornaria o
+   bloco de contenção dos elementos position: fixed — e a cena de fundo
+   deixaria de acompanhar a janela. A elevação fica por conta do .container. */
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
+}
+
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Saída de página: aplicada por JS antes de navegar para outra página. */
+body.is-leaving {
+  opacity: 0;
+  transition: opacity 0.26s var(--ease-royal);
+}
+
+body.is-leaving .container {
+  transform: translate3d(0, -8px, 0);
+  transition: transform 0.26s var(--ease-royal);
 }
 
 .scene {
@@ -171,95 +240,468 @@ body {
   z-index: -3;
   overflow: hidden;
   pointer-events: none;
+  contain: strict;
+}
+
+/* --- Estrelas (só à noite) --- */
+.scene__stars {
+  position: absolute;
+  inset: 0;
+  background-image: url("./assets/estrelas.webp");
+  background-size: 512px 512px;
+  opacity: 0.75;
+  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.012px), 0);
+  transition: opacity var(--dur-3) var(--ease-royal);
+}
+
+html.light .scene__stars {
+  opacity: 0;
+}
+
+/* --- Astro: lua à noite, sol de dia --- */
+.scene__orb {
+  position: absolute;
+  top: clamp(6%, 9vh, 14%);
+  right: clamp(8%, 14vw, 22%);
+  width: clamp(54px, 7vw, 96px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #fdf8e8, #e8e2cc 58%, #cfc9b2 100%);
+  box-shadow: 0 0 40px 14px rgba(226, 226, 208, 0.22), 0 0 140px 60px rgba(180, 198, 230, 0.14);
+  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.02px), 0);
+  transition: background var(--dur-3) var(--ease-royal), box-shadow var(--dur-3) var(--ease-royal);
+}
+
+html.light .scene__orb {
+  background: radial-gradient(circle at 50% 50%, #fffdf2, #ffeeb6 46%, rgba(255, 226, 150, 0) 72%);
+  box-shadow: 0 0 90px 40px rgba(255, 232, 170, 0.42), 0 0 260px 130px rgba(255, 228, 160, 0.22);
+}
+
+/* --- Névoa do horizonte: assenta o palácio no fundo do céu --- */
+.scene__haze {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 62%;
+  background: linear-gradient(180deg, rgba(120, 130, 160, 0) 0%, rgba(96, 108, 142, 0.16) 58%, rgba(84, 94, 126, 0.3) 100%);
+  transition: background var(--dur-3) var(--ease-royal);
+}
+
+html.light .scene__haze {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(226, 238, 250, 0.22) 55%, rgba(238, 244, 250, 0.44) 100%);
+}
+
+/* --- Nuvens ---
+   Dois ladrilhos idênticos lado a lado; o conjunto desliza exatamente a
+   largura de um deles, então a emenda nunca aparece. A duração é dividida
+   por --wind: quanto mais forte o vento, mais depressa elas passam. */
+.scene__clouds {
+  --tile: clamp(760px, 120vw, 1280px);
+  position: absolute;
+  left: 0;
+  display: flex;
+  width: calc(var(--tile) * 2);
+  pointer-events: none;
+  animation: cloud-drift var(--cloud-dur, 150s) linear infinite;
+  animation-duration: calc(var(--cloud-dur, 150s) / var(--wind, 1));
+  will-change: transform;
+}
+
+.scene__clouds i {
+  display: block;
+  width: var(--tile);
+  height: 100%;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.scene__clouds--far {
+  --cloud-dur: 220s;
+  top: calc(2% + var(--scroll-y, 0) * -0.014px);
+  height: clamp(170px, 30vh, 360px);
+  opacity: 0.5;
+}
+
+.scene__clouds--mid {
+  --cloud-dur: 132s;
+  --tile: clamp(820px, 135vw, 1420px);
+  top: calc(10% + var(--scroll-y, 0) * -0.026px);
+  height: clamp(190px, 33vh, 400px);
+  opacity: 0.68;
+}
+
+/* A faixa da frente é rarefeita de propósito: são poucas mechas passando
+   diante da bandeira, o bastante para dar profundidade sem escondê-la. */
+.scene__clouds--near {
+  --cloud-dur: 74s;
+  --tile: clamp(900px, 150vw, 1560px);
+  top: calc(26% + var(--scroll-y, 0) * -0.05px);
+  height: clamp(150px, 26vh, 320px);
+  opacity: 0.34;
+}
+
+.scene__clouds--far i {
+  background-image: url("./assets/nuvens-fundo.webp");
+}
+
+.scene__clouds--mid i {
+  background-image: url("./assets/nuvens-meio.webp");
+}
+
+.scene__clouds--near i {
+  background-image: url("./assets/nuvens-frente.webp");
+}
+
+html.light .scene__clouds--far {
+  opacity: 0.78;
+}
+
+html.light .scene__clouds--mid {
+  opacity: 0.95;
+}
+
+html.light .scene__clouds--near {
+  opacity: 0.5;
+}
+
+/* À noite as nuvens são vultos, não algodão: escurecem e azulam. */
+.scene__clouds i {
+  filter: brightness(0.42) saturate(0.5) contrast(0.92);
+  transition: filter var(--dur-3) var(--ease-royal);
+}
+
+html.light .scene__clouds i {
+  filter: none;
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(var(--tile) * -1), 0, 0);
+  }
+}
+
+/* --- Palácio --- */
+.scene__city {
+  position: absolute;
+  left: var(--city-x);
+  bottom: 0;
+  height: var(--palace-h);
+  aspect-ratio: 2400 / 1180;
+  transform: translate3d(-50%, calc(var(--scroll-y, 0) * -0.008px), 0);
+}
+
+.scene__palace,
+.scene__palace-lights {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: 100% 100%;
+}
+
+/* A silhueta é desenhada em pedra clara: de dia ela aparece como fachada,
+   à noite o filtro a reduz a um vulto contra o céu. */
+.scene__palace {
+  background-image: url("./assets/palacio.webp");
+  filter: brightness(0.3) saturate(0.45) contrast(1.05);
+  transition: filter var(--dur-3) var(--ease-royal);
+}
+
+html.light .scene__palace {
+  filter: brightness(1) saturate(0.82);
+}
+
+.scene__palace-lights {
+  background-image: url("./assets/palacio-luzes.webp");
+  opacity: 0.85;
+  mix-blend-mode: screen;
+  animation: windows-flicker 9s ease-in-out infinite;
+  transition: opacity var(--dur-3) var(--ease-royal);
+}
+
+html.light .scene__palace-lights {
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes windows-flicker {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 0.92;
+  }
+}
+
+/* --- Mastro: nasce da cúpula e se inclina com o vento --- */
+.scene__mast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--palace-h) * 0.93);
+  width: 4px;
+  height: var(--mast-h);
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) rotate(calc((var(--wind, 1) - 1) * 0.5deg));
+  background: linear-gradient(90deg, rgba(20, 18, 16, 0.9), rgba(214, 208, 196, 0.85) 45%, rgba(40, 36, 32, 0.9));
+  border-radius: 2px;
+  transition: transform 0.6s var(--ease-royal);
+}
+
+/* Ponteira do mastro */
+.scene__mast::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+}
+
+/* --- Bandeira: içada na ponta do mastro --- */
+.scene__flag-stage {
+  position: absolute;
+  left: 3px;
+  bottom: calc(100% - 10px - var(--flag-h));
+  width: var(--flag-w);
+  height: var(--flag-h);
+  transform-origin: 0% 50%;
+  animation: flag-sway 9s ease-in-out infinite;
+  animation-duration: calc(9s / var(--wind, 1));
+  will-change: transform;
+}
+
+/* Halo quente atrás do pano: à noite é o refletor que mantém a bandeira
+   perfeitamente identificável; de dia, apenas um respiro de luz. */
+.scene__flag-halo {
+  position: absolute;
+  inset: -18% -12%;
+  background: radial-gradient(60% 60% at 40% 50%, rgba(255, 214, 150, 0.3), transparent 72%);
+  opacity: 0.9;
+  transition: opacity var(--dur-3) var(--ease-royal);
+}
+
+html.light .scene__flag-halo {
+  opacity: 0.35;
 }
 
 .scene__flag {
   position: absolute;
-  inset: -10% -10%;
-  background-image: url("./assets/bandeira.png");
-  background-image: var(--flag-image, image-set(url("./assets/bandeira.webp") type("image/webp"), url("./assets/bandeira.png") type("image/png")));
-  background-repeat: no-repeat;
-  background-position: center 30%;
-  background-size: cover;
-  opacity: 0.16;
-  filter: url(#cloth-wave) saturate(1.05);
-  transform-origin: center 30%;
-  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.06);
-  animation: flag-drift 22s var(--ease-royal) infinite;
-  will-change: transform;
-  transition: opacity var(--dur-3) var(--ease-royal);
+  inset: 0;
+  opacity: var(--flag-opacity, 0.9);
+  filter: brightness(0.66) saturate(0.95) contrast(1.02);
+  transition: opacity var(--dur-3) var(--ease-royal), filter var(--dur-3) var(--ease-royal);
+  isolation: isolate;
 }
 
 html.light .scene__flag {
-  opacity: 0.15;
-  mix-blend-mode: multiply;
+  --flag-opacity: 0.86;
+  filter: brightness(1.04) saturate(1.04);
 }
 
-/* Ondulação lenta: leve balanço + respiração de escala, como um tecido ao vento */
-@keyframes flag-drift {
-  0% {
-    transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.06) rotate(-0.35deg);
+.scene__flag-still,
+.scene__flag-frame {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}
+
+.scene__flag-still {
+  background-image: url("./assets/bandeira-tecido-sm.png");
+  background-image: image-set(
+    url("./assets/bandeira-tecido-sm.webp") type("image/webp"),
+    url("./assets/bandeira-tecido-sm.png") type("image/png")
+  );
+}
+
+/* Em telas grandes o quadro-base já é o primeiro quadro do ciclo (o mesmo
+   que o flamular usa), para não baixar duas imagens diferentes. */
+@media (min-width: 1000px) {
+  .scene__flag-still {
+    background-image: url("./assets/bandeira-tecido.png");
+    background-image: image-set(
+      url("./assets/bandeira-tecido-1.webp") type("image/webp"),
+      url("./assets/bandeira-tecido.png") type("image/png")
+    );
   }
-  25% {
-    transform: translate3d(0.6%, calc(var(--scroll-y, 0) * -0.04px - 6px), 0) scale(1.075) rotate(0.2deg);
+}
+
+html.fx-full .scene__flag-still {
+  background-image: url("./assets/bandeira-tecido-sm-1.webp");
+}
+
+@media (min-width: 1000px) {
+  html.fx-full .scene__flag-still {
+    background-image: url("./assets/bandeira-tecido-1.webp");
   }
+}
+
+/* Quadros do flamular: só existem quando o ambiente comporta a animação.
+   Enquanto estiverem "display: none", o navegador nem baixa as imagens. */
+.scene__flag-frame {
+  display: none;
+  opacity: 0;
+  will-change: opacity;
+}
+
+html.fx-full .scene__flag-frame {
+  display: block;
+  animation: cloth-flutter 3.6s linear infinite;
+  animation-duration: calc(3.6s / var(--wind, 1));
+}
+
+/* Dois jogos de quadros: os pequenos (720px) para telefones e tablets, os
+   grandes (1280px) a partir do desktop. Só um deles chega a ser baixado. */
+html.fx-full .scene__flag-frame--2 {
+  background-image: url("./assets/bandeira-tecido-sm-2.webp");
+}
+
+html.fx-full .scene__flag-frame--3 {
+  background-image: url("./assets/bandeira-tecido-sm-3.webp");
+  animation-name: cloth-flutter-3;
+}
+
+html.fx-full .scene__flag-frame--4 {
+  background-image: url("./assets/bandeira-tecido-sm-4.webp");
+  animation-name: cloth-flutter-4;
+}
+
+@media (min-width: 1000px) {
+  html.fx-full .scene__flag-frame--2 {
+    background-image: url("./assets/bandeira-tecido-2.webp");
+  }
+
+  html.fx-full .scene__flag-frame--3 {
+    background-image: url("./assets/bandeira-tecido-3.webp");
+  }
+
+  html.fx-full .scene__flag-frame--4 {
+    background-image: url("./assets/bandeira-tecido-4.webp");
+  }
+}
+
+/* O ciclo 1 → 2 → 3 → 4 → 1. Cada quadro só é apagado enquanto está
+   totalmente encoberto pelo seguinte, de modo que em nenhum instante mais
+   de duas camadas estejam visíveis ao mesmo tempo — sem fantasmas. */
+@keyframes cloth-flutter {
+  0%,
+  8% {
+    opacity: 0;
+  }
+  25%,
   50% {
-    transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.06) rotate(0.35deg);
+    opacity: 1;
   }
+  62%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cloth-flutter-3 {
+  0%,
+  33% {
+    opacity: 0;
+  }
+  50%,
   75% {
-    transform: translate3d(-0.6%, calc(var(--scroll-y, 0) * -0.04px + 6px), 0) scale(1.045) rotate(-0.2deg);
+    opacity: 1;
+  }
+  87%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cloth-flutter-4 {
+  0%,
+  58% {
+    opacity: 0;
+  }
+  75%,
+  88% {
+    opacity: 1;
   }
   100% {
-    transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.06) rotate(-0.35deg);
+    opacity: 0;
   }
 }
 
+/* Brilho que percorre o pano de tempos em tempos */
+.scene__flag-sheen {
+  position: absolute;
+  inset: -10% -40%;
+  background: linear-gradient(
+    104deg,
+    transparent 38%,
+    rgba(255, 246, 216, 0.14) 47%,
+    rgba(255, 252, 238, 0.18) 50%,
+    rgba(255, 246, 216, 0.1) 53%,
+    transparent 63%
+  );
+  animation: sheen-sweep 17s var(--ease-royal) infinite;
+  will-change: transform, opacity;
+}
+
+/* Balanço do pano na ponta do mastro: preso à esquerda, solto à direita —
+   por isso a origem da transformação fica no lado do mastro. */
+@keyframes flag-sway {
+  0%,
+  100% {
+    transform: rotate(-0.9deg) translate3d(0, 0, 0);
+  }
+  35% {
+    transform: rotate(0.7deg) translate3d(0, calc(var(--flag-h) * -0.012), 0);
+  }
+  70% {
+    transform: rotate(-0.25deg) translate3d(0, calc(var(--flag-h) * 0.012), 0);
+  }
+}
+
+@keyframes sheen-sweep {
+  0%,
+  10% {
+    transform: translate3d(-42%, 0, 0);
+    opacity: 0;
+  }
+  24% {
+    opacity: 0.85;
+  }
+  66% {
+    opacity: 0.7;
+  }
+  85%,
+  100% {
+    transform: translate3d(42%, 0, 0);
+    opacity: 0;
+  }
+}
+
+/* --- Véu de profundidade: escurece a noite, embranquece o dia, e em ambos
+       garante que o texto continue confortável sobre a cena. --- */
 .scene__vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-      120% 90% at 50% 8%,
-      transparent 35%,
-      rgba(10, 6, 4, 0.55) 100%
-    ),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45) 70%, rgba(0, 0, 0, 0.6));
+  background: radial-gradient(130% 95% at 50% 12%, transparent 30%, rgba(6, 9, 20, 0.42) 100%),
+    linear-gradient(180deg, rgba(4, 7, 16, 0.44) 0%, rgba(4, 7, 16, 0.2) 38%, rgba(4, 7, 16, 0.26) 100%);
 }
 
 html.light .scene__vignette {
-  background: radial-gradient(
-      120% 90% at 50% 8%,
-      transparent 40%,
-      rgba(90, 65, 25, 0.25) 100%
-    ),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(90, 65, 25, 0.08) 70%, rgba(90, 65, 25, 0.18));
-}
-
-.scene__rays {
-  position: absolute;
-  inset: -20%;
-  background: conic-gradient(
-    from 0deg at 50% 20%,
-    transparent 0deg,
-    rgba(255, 215, 0, 0.05) 8deg,
-    transparent 20deg,
-    transparent 160deg,
-    rgba(255, 215, 0, 0.04) 172deg,
-    transparent 190deg,
-    transparent 360deg
-  );
-  animation: rays-drift 90s linear infinite;
-  mix-blend-mode: screen;
-}
-
-html.light .scene__rays {
-  mix-blend-mode: overlay;
-  opacity: 0.6;
+  background: radial-gradient(130% 95% at 50% 12%, transparent 34%, rgba(170, 182, 200, 0.26) 100%),
+    linear-gradient(180deg, rgba(255, 253, 246, 0.34) 0%, rgba(255, 253, 246, 0.14) 40%, rgba(255, 250, 238, 0.26) 100%);
 }
 
 .scene__grain {
   position: absolute;
   inset: 0;
-  opacity: 0.05;
+  opacity: 0.045;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-size: 160px 160px;
@@ -272,12 +714,40 @@ html.light .scene__rays {
   overflow: hidden;
 }
 
-@keyframes rays-drift {
-  from {
-    transform: rotate(0deg);
+/* --- A cena em telas menores: o palácio recua para a esquerda para abrir
+       espaço à bandeira, que cresce para continuar identificável. --- */
+@media (max-width: 860px) {
+  html {
+    --city-x: 34%;
+    --palace-h: clamp(150px, 26vh, 320px);
+    --mast-h: clamp(140px, 32vh, 300px);
+    --flag-w: max(200px, calc(var(--mast-h) * 0.86));
   }
-  to {
-    transform: rotate(360deg);
+}
+
+@media (max-width: 520px) {
+  html {
+    --city-x: 28%;
+    --palace-h: clamp(110px, 19vh, 220px);
+    --mast-h: clamp(175px, 41vh, 330px);
+    --flag-w: max(185px, min(54vw, calc(var(--mast-h) * 0.92)));
+  }
+
+  /* A lua/sol sobe e encosta na borda para não disputar espaço com o
+     emblema e o título. */
+  .scene__orb {
+    top: 4%;
+    right: 5%;
+    width: clamp(44px, 12vw, 62px);
+  }
+}
+
+/* Telas baixas em paisagem: a cena se achata para não engolir o conteúdo */
+@media (max-height: 520px) and (orientation: landscape) {
+  html {
+    --palace-h: clamp(90px, 26vh, 180px);
+    --mast-h: clamp(70px, 22vh, 140px);
+    --flag-w: clamp(160px, 26vw, 280px);
   }
 }
 
@@ -316,7 +786,16 @@ a {
 
 img {
   max-width: 100%;
+  height: auto;
   display: block;
+}
+
+/* Nada deve poder estourar a largura da tela */
+iframe,
+video,
+table,
+pre {
+  max-width: 100%;
 }
 
 /* <picture> é só um invólucro para as fontes WebP/PNG; o <img> interno
@@ -336,7 +815,10 @@ button {
 
 .container {
   width: min(92%, 46rem);
+  max-width: 100%;
+  animation: content-enter 0.7s var(--ease-royal) both;
   margin: 0 auto;
+  padding-inline: max(0px, env(safe-area-inset-left)) max(0px, env(safe-area-inset-right));
   padding-block: clamp(1.25rem, 1rem + 1.2vw, 2.5rem) var(--space-6);
 }
 
@@ -582,12 +1064,14 @@ html.light .toggle-knob {
 .blog {
   display: flex;
   flex-wrap: wrap;
+  align-items: stretch;
   gap: var(--space-4);
   justify-content: center;
 }
 
 .blog-post {
-  flex: 1 1 17rem;
+  flex: 1 1 min(100%, 17rem);
+  min-width: 0;
   max-width: 23rem;
   display: flex;
   flex-direction: column;
@@ -609,12 +1093,12 @@ html.light .toggle-knob {
 }
 
 .blog-post__media {
-  aspect-ratio: 16 / 20;
+  aspect-ratio: 16 / 14;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-5);
+  padding: clamp(0.9rem, 0.6rem + 2vw, 2.25rem);
   background: radial-gradient(ellipse at center, var(--surface-hover), transparent 72%);
 }
 
@@ -623,7 +1107,7 @@ html.light .toggle-knob {
   height: auto;
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain; gap: 3px;
+  object-fit: contain;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.35));
   transition: transform var(--dur-3) var(--ease-royal);
 }
@@ -708,11 +1192,11 @@ html.light .toggle-knob {
    7b. Página de publicação individual (post) e cabeçalho compacto
    ------------------------------------------------------------------------- */
 .hero--compact {
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: var(--space-3);
-  text-align: left;
+  text-align: center;
   flex-wrap: wrap;
 }
 
@@ -811,38 +1295,37 @@ html.light .toggle-knob {
 }
 
 .post__hero {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+  /* Galeria de destaque: flex centrado — a última linha fica centralizada
+     (a grade deixaria itens "órfãos" à esquerda) e as imagens são
+     equilibradas pela ALTURA, para que um brasão vertical e uma bandeira
+     horizontal tenham peso visual semelhante em qualquer tela. */
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-items: center;
-  gap: clamp(1rem, 0.7rem + 1.2vw, 2rem);
-  padding: clamp(1.25rem, 1rem + 1.5vw, 2.25rem);
+  justify-content: center;
+  gap: clamp(1rem, 0.7rem + 1.4vw, 2.25rem);
+  padding: clamp(1rem, 0.8rem + 1.5vw, 2.25rem);
   margin-bottom: var(--space-5);
   border-radius: var(--radius-md);
   background: radial-gradient(ellipse at center, var(--surface-hover), transparent 72%);
 }
 
-/* Uma única imagem (ou <picture>) de destaque merece mais espaço do que uma
-   galeria — usamos ":only-child" no filho direto para diferenciar os dois
-   casos, já que ":only-of-type" combinaria erroneamente com qualquer <img>
-   isolado dentro do seu próprio <picture>. */
-.post__hero:has(> :only-child) {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .post__hero img {
-  width: 100%;
-  max-width: 16rem;
+  width: auto;
+  max-width: min(100%, 17rem);
   height: auto;
-  max-height: 16rem;
+  max-height: clamp(8.5rem, 5.5rem + 12vw, 13.5rem);
   object-fit: contain;
   filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35));
   transition: transform var(--dur-2) var(--ease-royal), filter var(--dur-2) var(--ease-royal);
 }
 
+/* Uma única imagem de destaque merece mais espaço do que uma galeria.
+   Usamos ":only-child" no filho direto porque ":only-of-type" combinaria
+   erroneamente com qualquer <img> isolado dentro do seu próprio <picture>. */
 .post__hero:has(> :only-child) img {
-  max-width: 20rem;
-  max-height: 18rem;
+  max-width: min(100%, 26rem);
+  max-height: clamp(11rem, 7rem + 20vw, 20rem);
 }
 
 .post__hero img:hover {
@@ -875,17 +1358,6 @@ html.light .toggle-knob {
   flex-wrap: wrap;
   padding-top: var(--space-4);
   border-top: 1px solid var(--card-border);
-}
-
-@media (max-width: 480px) {
-  .hero--compact {
-    justify-content: center;
-    text-align: center;
-  }
-
-  .brand-link__text {
-    align-items: flex-start;
-  }
 }
 
 /* -------------------------------------------------------------------------
@@ -991,7 +1463,8 @@ html.light .toggle-knob {
 }
 
 .video-card {
-  flex: 1 1 20rem;
+  flex: 1 1 min(100%, 20rem);
+  min-width: 0;
   max-width: 28rem;
   background: var(--surface);
   border: 1px solid var(--card-border);
@@ -1083,33 +1556,132 @@ footer {
 }
 
 /* -------------------------------------------------------------------------
-   12. Animações de revelação (scroll)
+   12. Animações de revelação (scroll) e micro-interações
+
+   Cada elemento .reveal recebe de JS um índice (--reveal-i) dentro do seu
+   grupo, usado para escalonar o atraso automaticamente — não é preciso mais
+   escrever regras :nth-child() manuais ao acrescentar publicações ou links.
+   Variantes: .reveal--up (padrão), .reveal--fade, .reveal--zoom,
+   .reveal--left, .reveal--right.
    ------------------------------------------------------------------------- */
 .reveal {
+  --reveal-i: 0;
+  --reveal-step: 0.06s;
   opacity: 0;
-  transform: translateY(18px);
-  transition: opacity var(--dur-3) var(--ease-royal), transform var(--dur-3) var(--ease-royal);
+  transform: translate3d(0, 20px, 0);
+  transition: opacity 0.7s var(--ease-royal), transform 0.7s var(--ease-royal),
+    filter 0.7s var(--ease-royal);
+  transition-delay: calc(var(--reveal-i) * var(--reveal-step));
+  filter: blur(4px);
+  will-change: opacity, transform;
+}
+
+.reveal--fade {
+  transform: none;
+}
+
+.reveal--zoom {
+  transform: scale(0.94);
+}
+
+.reveal--left {
+  transform: translate3d(-24px, 0, 0);
+}
+
+.reveal--right {
+  transform: translate3d(24px, 0, 0);
 }
 
 .reveal.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
+  filter: none;
+  will-change: auto;
 }
 
-.blog-post.reveal:nth-child(2),
-.link-row .reveal:nth-child(2),
-.video-card.reveal:nth-child(2) {
-  transition-delay: 0.08s;
+/* Títulos de seção: pequeno deslize da letra além do fade */
+.section-title {
+  transition: color var(--dur-3) var(--ease-royal), letter-spacing var(--dur-3) var(--ease-royal),
+    text-shadow var(--dur-3) var(--ease-royal);
 }
 
-.blog-post.reveal:nth-child(3),
-.link-row .reveal:nth-child(3),
-.video-card.reveal:nth-child(3) {
-  transition-delay: 0.16s;
+.section.reveal .section-title {
+  letter-spacing: 0.16em;
 }
 
-.link-row .reveal:nth-child(4) {
-  transition-delay: 0.24s;
+.section.reveal.is-visible .section-title {
+  letter-spacing: 0.02em;
+}
+
+/* Brilho que atravessa cards e botões ao passar o mouse */
+.blog-post,
+.video-card,
+.post,
+.legado-text {
+  position: relative;
+}
+
+.blog-post::after,
+.video-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 38%,
+    rgba(255, 246, 214, 0.16) 48%,
+    rgba(255, 255, 255, 0.24) 51%,
+    rgba(255, 246, 214, 0.14) 54%,
+    transparent 64%
+  );
+  opacity: 0;
+  transform: translate3d(-35%, 0, 0);
+  transition: opacity var(--dur-2) var(--ease-royal), transform 0.85s var(--ease-royal);
+}
+
+.blog-post:hover::after,
+.blog-post:focus-within::after,
+.video-card:hover::after,
+.video-card:focus-within::after {
+  opacity: 1;
+  transform: translate3d(35%, 0, 0);
+}
+
+/* Sublinhado animado dos links de texto */
+.blog-post__link,
+.credit a,
+.post__back {
+  position: relative;
+}
+
+.blog-post__link::after,
+.credit a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-2) var(--ease-royal);
+}
+
+.blog-post__link:hover::after,
+.blog-post__link:focus-visible::after,
+.credit a:hover::after,
+.credit a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* Pequeno recuo tátil ao pressionar botões e links de ação */
+.share-btn:active,
+.icon-link:active,
+.theme-toggle:active {
+  transform: translateY(1px) scale(0.98);
 }
 
 /* -------------------------------------------------------------------------
@@ -1142,7 +1714,83 @@ footer {
 
 /* -------------------------------------------------------------------------
    14. Media queries — responsividade
+
+   Estratégia: o layout base é o de tela estreita (a partir de ~280px de
+   largura) e cresce por etapas — 480, 640, 900, 1180, 1500 e 1800px —
+   até monitores ultralargos. Tudo o que tem largura fixa foi trocado por
+   clamp()/min() para acompanhar a tela continuamente.
    ------------------------------------------------------------------------- */
+
+/* --- Telas muito estreitas (≤ 400px) --- */
+@media (max-width: 400px) {
+  .container {
+    width: 94%;
+  }
+
+  .section {
+    padding-block: var(--space-4);
+  }
+
+  .blog-post__media {
+    aspect-ratio: 4 / 3;
+    padding: var(--space-3);
+  }
+
+  .blog-post__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .blog-post__actions .share-btn {
+    justify-content: center;
+  }
+
+  .post__actions {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .post__actions .share-btn {
+    justify-content: center;
+  }
+
+  .icon-link {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  .icon-link .icon {
+    width: 42%;
+    height: 42%;
+  }
+
+  .link-row {
+    gap: var(--space-3);
+  }
+}
+
+/* --- Texto: justificado só quando a linha é longa o bastante --- */
+@media (max-width: 560px) {
+  .texto-justificado,
+  .post__body p {
+    text-align: left;
+    text-align-last: left;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+  }
+}
+
+/* --- A partir de 480px --- */
+@media (min-width: 480px) {
+  .hero--compact {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
+/* --- A partir de 640px: publicações em linha, legado lado a lado --- */
 @media (min-width: 640px) {
   .blog-post {
     flex-direction: row;
@@ -1151,6 +1799,7 @@ footer {
   .blog-post__media {
     aspect-ratio: auto;
     width: 42%;
+    min-width: 0;
     flex-shrink: 0;
     align-self: stretch;
   }
@@ -1178,12 +1827,18 @@ footer {
   }
 }
 
+/* --- Tablets e acima --- */
 @media (min-width: 900px) {
   .container {
     width: min(88%, 62rem);
   }
+
+  .blog {
+    gap: var(--space-5);
+  }
 }
 
+/* --- Desktop --- */
 @media (min-width: 1180px) {
   .container {
     width: min(86%, 74rem);
@@ -1194,17 +1849,85 @@ footer {
     max-width: 62rem;
     margin-inline: auto;
   }
-}
 
-@media (max-width: 380px) {
-  .icon-link {
-    width: 3.6rem;
-    height: 3.6rem;
+  /* Com espaço sobrando, as publicações voltam a ser cartões verticais
+     em três colunas — leitura mais confortável que faixas largas. */
+  .blog {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    align-items: stretch;
   }
 
-  .icon-link .icon {
-    width: 42%;
-    height: 42%;
+  .blog-post {
+    flex-direction: column;
+    max-width: none;
+  }
+
+  .blog-post__media {
+    width: 100%;
+    aspect-ratio: 16 / 13;
+    align-self: auto;
+  }
+}
+
+/* --- Monitores grandes --- */
+@media (min-width: 1500px) {
+  .container {
+    width: min(84%, 82rem);
+  }
+
+  .legado-content,
+  .video-grid {
+    max-width: 72rem;
+  }
+}
+
+/* --- Ultralargos --- */
+@media (min-width: 1800px) {
+  .container {
+    width: min(80%, 92rem);
+  }
+
+  :root {
+    --fs-hero: clamp(2.4rem, 1.4rem + 1.6vw, 3.2rem);
+  }
+}
+
+/* --- Telas baixas em paisagem (telefone deitado) --- */
+@media (max-height: 520px) and (orientation: landscape) {
+  .container {
+    padding-block: var(--space-3) var(--space-5);
+  }
+
+  .hero {
+    gap: var(--space-2);
+  }
+
+  .section {
+    padding-block: var(--space-4);
+  }
+}
+
+/* --- Impressão --- */
+@media print {
+  .scene,
+  .progress-banner,
+  .theme-toggle-wrap,
+  .share-btn,
+  .toast {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+    animation: none;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
   }
 }
 
@@ -1218,6 +1941,23 @@ button:focus-visible {
   border-radius: var(--radius-sm);
 }
 
+/* Alvos de toque confortáveis em qualquer aparelho com toque */
+@media (hover: none) and (pointer: coarse) {
+  .share-btn,
+  .blog-post__link,
+  .post__back,
+  .social a,
+  .icon-link {
+    min-height: 2.75rem;
+  }
+
+  /* Sem cursor, os efeitos de hover não devem "prender" estados */
+  .blog-post:hover,
+  .video-card:hover {
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1225,16 +1965,48 @@ button:focus-visible {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 
-  .scene__flag {
-    transform: none !important;
+  /* A cena continua lá — céu, nuvens, palácio e bandeira —, apenas parada:
+     nada se move, nem com a rolagem. */
+  .scene__clouds,
+  .scene__flag-stage,
+  .scene__flag-frame,
+  .scene__flag-sheen,
+  .scene__palace-lights {
+    animation: none !important;
+  }
+
+  html.fx-full .scene__flag-frame {
+    display: none !important;
+  }
+
+  .scene__flag-sheen {
+    opacity: 0.3;
+  }
+
+  .scene__clouds--far {
+    top: 2%;
+  }
+
+  .scene__clouds--mid {
+    top: 10%;
+  }
+
+  .scene__clouds--near {
+    top: 26%;
+  }
+
+  .scene__mast {
+    transform: translateX(-50%) !important;
   }
 
   .reveal {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
