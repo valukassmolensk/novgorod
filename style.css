@@ -147,6 +147,273 @@ html.light {
     );
 }
 
+
+/* -------------------------------------------------------------------------
+   2b. Motor atmosférico — luz, sombra e clima
+   ------------------------------------------------------------------------- */
+body {
+  background: var(--weather-body-bg, var(--body-bg));
+}
+
+.scene {
+  --weather-cloud-opacity: 0.68;
+  --weather-cloud-brightness: 0.42;
+  --weather-cloud-saturation: 0.5;
+  --weather-cloud-contrast: 0.92;
+  --weather-haze-opacity: 0;
+  --weather-ground-tint: rgba(70, 62, 48, 0);
+}
+
+.scene__weather-haze {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: var(--weather-haze-opacity);
+  background:
+    radial-gradient(90% 35% at 50% 88%, var(--weather-ground-tint), transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,0) 0 55%, rgba(80,70,55,.10) 100%);
+  mix-blend-mode: multiply;
+  transition: opacity 1.6s ease, background 1.6s ease;
+}
+
+.scene__clouds {
+  z-index: 4;
+  opacity: var(--weather-cloud-opacity);
+}
+
+.scene__clouds i {
+  filter: brightness(var(--weather-cloud-brightness))
+    saturate(var(--weather-cloud-saturation))
+    contrast(var(--weather-cloud-contrast))
+    hue-rotate(var(--weather-cloud-hue, 0deg));
+  transition: filter 1.8s ease, opacity 1.8s ease;
+}
+
+.scene__stars,
+.scene__orb,
+.scene__haze,
+.scene__city,
+.scene__vignette,
+.scene__grain {
+  transition: filter 1.6s ease, opacity 1.6s ease, background 1.6s ease;
+}
+
+/* Chuva: partículas inclinadas pela direção do vento. */
+.scene__rain {
+  position: absolute;
+  inset: -12% -8%;
+  z-index: 8;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.scene__rain span {
+  position: absolute;
+  top: -18%;
+  left: var(--x);
+  width: var(--w);
+  height: var(--h);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(225,242,255,.06), rgba(190,224,255,.58));
+  transform: rotate(var(--angle));
+  opacity: var(--a);
+  animation: rain-fall var(--speed) linear infinite;
+  animation-delay: var(--delay);
+}
+
+@keyframes rain-fall {
+  from { transform: translate3d(0, -12%, 0) rotate(var(--angle)); }
+  to { transform: translate3d(var(--drift), 122%, 0) rotate(var(--angle)); }
+}
+
+.scene__dry-dust {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    radial-gradient(circle at 12% 76%, rgba(224,190,126,.45) 0 1px, transparent 2px),
+    radial-gradient(circle at 62% 84%, rgba(208,172,111,.32) 0 1px, transparent 2px),
+    radial-gradient(circle at 86% 70%, rgba(238,204,140,.36) 0 1px, transparent 2px);
+  background-size: 180px 130px, 230px 170px, 310px 190px;
+  animation: dust-drift 24s linear infinite;
+  transition: opacity 1.8s ease;
+}
+
+@keyframes dust-drift {
+  from { transform: translate3d(-2%, 0, 0); }
+  to { transform: translate3d(4%, -1%, 0); }
+}
+
+/* Relâmpago: o JS dispara a classe somente por alguns milissegundos. */
+.scene__lightning {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(35% 35% at 72% 22%, rgba(255,255,255,.96), transparent 70%),
+    rgba(225,238,255,.12);
+  mix-blend-mode: screen;
+}
+
+.scene__lightning.is-flash {
+  animation: lightning-flash .38s ease-out both;
+}
+
+@keyframes lightning-flash {
+  0% { opacity: 0; }
+  12% { opacity: .88; }
+  18% { opacity: .16; }
+  30% { opacity: .72; }
+  42% { opacity: .05; }
+  100% { opacity: 0; }
+}
+
+/* O palácio recebe a mesma iluminação atmosférica do céu. */
+.scene__palace {
+  filter: brightness(var(--palace-brightness, .3))
+    saturate(var(--palace-saturation, .45))
+    contrast(var(--palace-contrast, 1.05));
+  transition: filter 1.7s ease;
+}
+
+.scene__palace-lights {
+  opacity: var(--palace-lights, .85);
+  transition: opacity 1.7s ease;
+}
+
+.scene__vignette {
+  opacity: var(--weather-vignette-opacity, 1);
+  transition: opacity 1.7s ease, background 1.7s ease;
+}
+
+/* -------------------------------------------------------------------------
+   Controles climáticos
+   ------------------------------------------------------------------------- */
+.scene-controls {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  z-index: 12;
+}
+
+.scene-control {
+  min-height: 44px;
+  padding: .55rem .9rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  color: var(--ink);
+  backdrop-filter: blur(.5rem);
+  -webkit-backdrop-filter: blur(.5rem);
+  cursor: pointer;
+  box-shadow: var(--shadow-inset), var(--shadow-1);
+  font: inherit;
+  font-size: var(--fs-small);
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.scene-control:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.scene-control:focus-visible,
+.weather-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.weather-panel {
+  width: min(17rem, calc(100vw - 2rem));
+  padding: .8rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  backdrop-filter: blur(.8rem);
+  -webkit-backdrop-filter: blur(.8rem);
+  box-shadow: var(--shadow-2);
+  text-align: left;
+}
+
+.weather-panel__label {
+  display: block;
+  margin-bottom: .35rem;
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+}
+
+.weather-select {
+  width: 100%;
+  min-height: 44px;
+  padding: .55rem .7rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.weather-readout {
+  margin-top: .55rem;
+  color: var(--ink-dim);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+html[data-weather="rain"] .scene__rain,
+html[data-weather="storm"] .scene__rain {
+  opacity: .88;
+}
+
+html[data-weather="drought"] .scene__dry-dust {
+  opacity: .72;
+}
+
+html[data-weather="storm"] .scene__clouds {
+  --weather-cloud-opacity: .92;
+}
+
+html[data-weather="drought"] .scene__clouds {
+  --weather-cloud-opacity: .42;
+  --weather-cloud-brightness: .82;
+  --weather-cloud-saturation: .72;
+  --weather-cloud-contrast: 1.02;
+}
+
+@media (max-width: 560px) {
+  .weather-panel {
+    width: min(15rem, calc(100vw - 1.5rem));
+  }
+
+  .scene-controls {
+    align-self: center;
+  }
+
+  .scene__rain span {
+    animation-duration: calc(var(--speed) * .9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene__rain span,
+  .scene__dry-dust,
+  .scene__lightning,
+  .scene__clouds {
+    animation: none !important;
+  }
+}
+
 /* -------------------------------------------------------------------------
    2. Cena de fundo — céu de Kiev, palácio e bandeira hasteada
 
@@ -2019,4 +2286,245 @@ button:focus-visible {
   font-style: italic;
   line-height: 1.6;
   opacity: 0.9;
+}
+
+/* A variável atmosférica tem precedência sobre a paleta fixa de tema. */
+body { background: var(--weather-body-bg, var(--body-bg)); }
+
+
+/* -------------------------------------------------------------------------
+   16. Atmosfera cinemática — Sol/Lua reais, clima vivo, vento e iluminação
+   ------------------------------------------------------------------------- */
+.scene {
+  --scene-cold-light: rgba(128, 165, 255, .20);
+  --scene-warm-light: rgba(255, 205, 138, .32);
+  --light-angle: 140deg;
+  --light-altitude: .65;
+  --light-strength: .65;
+  --shadow-strength: .30;
+  --orb-size: 82px;
+  --orb-x: 78%;
+  --orb-y: 16%;
+  --moon-phase: .5;
+  --moon-illumination: 1;
+  --moon-shadow-shift: 0;
+  --weather-wind-factor: 1;
+  --wind-bearing: 270deg;
+  --wind-angle: 90deg;
+  --scroll-wind-boost: 0;
+}
+
+.scene::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    radial-gradient(34% 46% at var(--orb-x) var(--orb-y), var(--scene-warm-light), transparent 72%),
+    linear-gradient(var(--light-angle), rgba(255,255,255, calc(.03 + var(--light-strength) * .04)), transparent 46%);
+  mix-blend-mode: screen;
+  opacity: calc(.35 + var(--light-strength) * .50);
+  filter: blur(7px);
+  transition: opacity 1.8s var(--ease-royal), background 1.8s var(--ease-royal);
+}
+
+/* Sol e Lua ganham posição, escala e profundidade em tempo real. */
+.scene__orb {
+  top: var(--orb-y);
+  right: auto;
+  left: var(--orb-x);
+  width: var(--orb-size);
+  transform: translate3d(-50%, calc(var(--scroll-y, 0) * -0.018px), 0);
+  transition: left 2.2s var(--ease-royal), top 2.2s var(--ease-royal), width 2.2s var(--ease-royal), height 2.2s var(--ease-royal), background 2.2s ease, box-shadow 2.2s ease, filter 2.2s ease;
+  will-change: left, top, width, transform, filter;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+html[data-scene-time="day"] .scene__orb {
+  background:
+    radial-gradient(circle at 34% 30%, #fffef0 0 18%, #fff8c9 32%, #ffd979 62%, rgba(255,193,74,.96) 100%);
+  box-shadow:
+    0 0 28px 8px rgba(255,239,182,.42),
+    0 0 100px 38px rgba(255,217,122,.26),
+    0 0 190px 78px rgba(255,194,88,.11);
+  filter: saturate(calc(.92 + var(--light-strength) * .18)) brightness(calc(.94 + var(--light-strength) * .28));
+}
+
+html[data-scene-time="day"] .scene__orb::before {
+  content: "";
+  position: absolute;
+  inset: -4%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 44% 34%, rgba(255,255,255,.80) 0 7%, transparent 11%),
+    repeating-conic-gradient(from 12deg, rgba(255,255,255,.08) 0 7deg, transparent 7deg 15deg);
+  mix-blend-mode: screen;
+  animation: solar-grain 16s linear infinite;
+}
+
+html[data-scene-time="day"] .scene__orb::after {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,236,159,.38), rgba(255,210,116,0) 62%);
+  z-index: -1;
+  animation: solar-bloom 6s ease-in-out infinite;
+}
+
+html[data-scene-time="night"] .scene__orb {
+  background:
+    radial-gradient(circle at 38% 34%, #fdf8e8 0 13%, #eee8d0 54%, #cbc4aa 100%);
+  box-shadow:
+    0 0 28px 10px rgba(226,226,208,.24),
+    0 0 110px 48px rgba(180,198,230,.18),
+    0 0 190px 78px rgba(123,150,210,.08);
+  filter: brightness(calc(.86 + var(--light-strength) * .42)) contrast(1.04);
+}
+
+html[data-scene-time="night"] .scene__orb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 26% 30%, rgba(109,105,90,.32) 0 4%, transparent 6%),
+    radial-gradient(circle at 58% 25%, rgba(116,111,95,.24) 0 5%, transparent 7%),
+    radial-gradient(circle at 72% 57%, rgba(106,101,87,.20) 0 7%, transparent 9%),
+    radial-gradient(circle at 38% 68%, rgba(112,108,93,.22) 0 6%, transparent 8%),
+    radial-gradient(circle at 74% 24%, rgba(94,90,78,.17) 0 3%, transparent 5%);
+  opacity: .62;
+  mix-blend-mode: multiply;
+}
+
+html[data-scene-time="night"] .scene__orb::after {
+  content: "";
+  position: absolute;
+  top: -4%;
+  bottom: -4%;
+  width: 108%;
+  left: calc(50% + (var(--moon-shadow-shift) * 50%));
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #111735;
+  opacity: calc(1 - var(--moon-illumination));
+  mix-blend-mode: multiply;
+  transition: left 2.2s var(--ease-royal), opacity 2.2s ease;
+}
+
+@keyframes solar-grain {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes solar-bloom {
+  0%, 100% { transform: scale(.94); opacity: .72; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+
+/* Nuvens: escala, opacidade, contraste e direção passam a refletir o dado real. */
+.scene__clouds {
+  animation-duration: calc(var(--cloud-dur, 150s) / max(.35, var(--wind, 1)) / max(.65, var(--weather-wind-factor, 1)));
+  animation-direction: var(--cloud-animation-direction, normal);
+  filter: saturate(calc(.82 + var(--cloud-density, .55) * .28));
+  will-change: transform, opacity, filter;
+  transition: opacity 2.4s var(--ease-royal), filter 2.4s var(--ease-royal), top 2.4s var(--ease-royal);
+}
+
+.scene__clouds i {
+  background-position: center center;
+  filter: brightness(var(--weather-cloud-brightness)) saturate(var(--weather-cloud-saturation)) contrast(var(--weather-cloud-contrast)) hue-rotate(var(--weather-cloud-hue, 0deg));
+  transform-origin: center center;
+}
+
+html[data-scene-time="day"] .scene__clouds i {
+  filter: brightness(var(--weather-cloud-brightness)) saturate(calc(var(--weather-cloud-saturation) * 1.06)) contrast(var(--weather-cloud-contrast));
+}
+
+html[data-scene-time="night"] .scene__clouds i {
+  filter: brightness(calc(var(--weather-cloud-brightness) * .82)) saturate(calc(var(--weather-cloud-saturation) * .74)) contrast(calc(var(--weather-cloud-contrast) * 1.06)) hue-rotate(-3deg);
+}
+
+/* Chuva e poeira acompanham o rumo meteorológico; o valor também responde ao scroll. */
+.scene__rain {
+  transform: rotate(var(--wind-angle));
+  transform-origin: center;
+  filter: drop-shadow(0 0 4px rgba(205,228,255,.14));
+}
+
+.scene__dry-dust {
+  background-size: calc(160px + var(--weather-wind-factor) * 26px) calc(120px + var(--weather-wind-factor) * 18px),
+                   calc(210px + var(--weather-wind-factor) * 32px) calc(150px + var(--weather-wind-factor) * 22px),
+                   calc(290px + var(--weather-wind-factor) * 40px) calc(170px + var(--weather-wind-factor) * 28px);
+  animation-duration: calc(24s / max(.6, var(--weather-wind-factor)));
+}
+
+/* A cena inteira cria uma luz cinematográfica que contorna cards, texto e imagens. */
+.container,
+.site-footer,
+.blog-post,
+.blog-card,
+.legacy-panel,
+.media-card,
+.post__hero,
+img,
+.avatar,
+button,
+a {
+  --cinematic-shadow: calc(.18 + var(--shadow-strength) * .55);
+}
+
+h1, h2, h3, h4, h5, h6, p, a, button, label, li, figcaption,
+.subtitle, .dates, .blog-post__link, .legacy-panel, .weather-readout,
+.weather-location, .weather-details, .toggle-label {
+  text-shadow:
+    0 1px 1px rgba(0,0,0,var(--cinematic-shadow)),
+    0 8px 24px rgba(0,0,0,calc(var(--cinematic-shadow) * .32));
+}
+
+.container img,
+.container .avatar,
+.container .blog-card,
+.container .legacy-panel,
+.container .media-card,
+.container .post__hero {
+  filter: drop-shadow(0 calc(6px + var(--light-altitude) * 7px) calc(18px + var(--light-altitude) * 14px) rgba(0,0,0,var(--cinematic-shadow)));
+  transition: filter 1.8s var(--ease-royal), transform var(--dur-2) var(--ease-royal), box-shadow 1.8s var(--ease-royal);
+}
+
+.weather-panel {
+  min-width: min(330px, calc(100vw - 2rem));
+}
+
+.weather-location,
+.weather-details {
+  margin-top: .35rem;
+  color: var(--ink-dim);
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+html[data-scene-time="night"] .scene__stars {
+  opacity: calc(.54 + var(--light-strength) * .26);
+}
+
+html[data-scene-time="day"] .scene__stars {
+  opacity: 0;
+}
+
+html[data-scene-time="night"] .scene__palace-lights {
+  opacity: var(--palace-lights, .9);
+}
+
+html[data-scene-time="day"] .scene__palace-lights {
+  opacity: var(--palace-lights, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene__orb::before,
+  .scene__orb::after,
+  .scene::before {
+    animation: none !important;
+  }
 }

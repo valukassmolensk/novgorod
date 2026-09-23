@@ -1,0 +1,14 @@
+CASA PRINCIPESCA DE NOVGOROD — teste técnico da atualização atmosférica
+
+Verificações realizadas:
+- scripts.js validado com `node --check`.
+- Todos os 4 HTMLs do site foram inspecionados para recursos locais quebrados (âncoras internas, como `#blog`, foram excluídas do teste de existência física).
+- Todos os assets referenciados pelo CSS foram verificados.
+- Motor atmosférico executado em Chromium em memória com localização meteorológica simulada: coordenadas, meteorologia atual, vento, direção das nuvens, Sol/Lua, clima manual, rolagem/rajadas e alternância astronômica.
+- Fallback de geolocalização e preferência de movimento reduzido foram considerados no teste.
+
+Limitação do ambiente de teste:
+- O navegador disponível bloqueou navegação local (`file://`/`localhost`) e o ambiente de execução não permitiu conexão direta ao host meteorológico; por isso a chamada externa foi validada por execução controlada com resposta meteorológica simulada, não por uma requisição real ao Open-Meteo.
+
+Observação:
+A validação de localização real depende da permissão do navegador e de um contexto HTTPS (ou localhost). O pacote implementa `watchPosition()` e usa a posição disponível no dispositivo somente em memória; a meteorologia é atualizada por dados atuais do Open-Meteo quando a rede e a permissão estão disponíveis.
