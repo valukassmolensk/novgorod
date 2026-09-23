@@ -147,6 +147,273 @@ html.light {
     );
 }
 
+
+/* -------------------------------------------------------------------------
+   2b. Motor atmosférico — luz, sombra e clima
+   ------------------------------------------------------------------------- */
+body {
+  background: var(--weather-body-bg, var(--body-bg));
+}
+
+.scene {
+  --weather-cloud-opacity: 0.68;
+  --weather-cloud-brightness: 0.42;
+  --weather-cloud-saturation: 0.5;
+  --weather-cloud-contrast: 0.92;
+  --weather-haze-opacity: 0;
+  --weather-ground-tint: rgba(70, 62, 48, 0);
+}
+
+.scene__weather-haze {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: var(--weather-haze-opacity);
+  background:
+    radial-gradient(90% 35% at 50% 88%, var(--weather-ground-tint), transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,0) 0 55%, rgba(80,70,55,.10) 100%);
+  mix-blend-mode: multiply;
+  transition: opacity 1.6s ease, background 1.6s ease;
+}
+
+.scene__clouds {
+  z-index: 4;
+  opacity: var(--weather-cloud-opacity);
+}
+
+.scene__clouds i {
+  filter: brightness(var(--weather-cloud-brightness))
+    saturate(var(--weather-cloud-saturation))
+    contrast(var(--weather-cloud-contrast))
+    hue-rotate(var(--weather-cloud-hue, 0deg));
+  transition: filter 1.8s ease, opacity 1.8s ease;
+}
+
+.scene__stars,
+.scene__orb,
+.scene__haze,
+.scene__city,
+.scene__vignette,
+.scene__grain {
+  transition: filter 1.6s ease, opacity 1.6s ease, background 1.6s ease;
+}
+
+/* Chuva: partículas inclinadas pela direção do vento. */
+.scene__rain {
+  position: absolute;
+  inset: -12% -8%;
+  z-index: 8;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.scene__rain span {
+  position: absolute;
+  top: -18%;
+  left: var(--x);
+  width: var(--w);
+  height: var(--h);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(225,242,255,.06), rgba(190,224,255,.58));
+  transform: rotate(var(--angle));
+  opacity: var(--a);
+  animation: rain-fall var(--speed) linear infinite;
+  animation-delay: var(--delay);
+}
+
+@keyframes rain-fall {
+  from { transform: translate3d(0, -12%, 0) rotate(var(--angle)); }
+  to { transform: translate3d(var(--drift), 122%, 0) rotate(var(--angle)); }
+}
+
+.scene__dry-dust {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    radial-gradient(circle at 12% 76%, rgba(224,190,126,.45) 0 1px, transparent 2px),
+    radial-gradient(circle at 62% 84%, rgba(208,172,111,.32) 0 1px, transparent 2px),
+    radial-gradient(circle at 86% 70%, rgba(238,204,140,.36) 0 1px, transparent 2px);
+  background-size: 180px 130px, 230px 170px, 310px 190px;
+  animation: dust-drift 24s linear infinite;
+  transition: opacity 1.8s ease;
+}
+
+@keyframes dust-drift {
+  from { transform: translate3d(-2%, 0, 0); }
+  to { transform: translate3d(4%, -1%, 0); }
+}
+
+/* Relâmpago: o JS dispara a classe somente por alguns milissegundos. */
+.scene__lightning {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(35% 35% at 72% 22%, rgba(255,255,255,.96), transparent 70%),
+    rgba(225,238,255,.12);
+  mix-blend-mode: screen;
+}
+
+.scene__lightning.is-flash {
+  animation: lightning-flash .38s ease-out both;
+}
+
+@keyframes lightning-flash {
+  0% { opacity: 0; }
+  12% { opacity: .88; }
+  18% { opacity: .16; }
+  30% { opacity: .72; }
+  42% { opacity: .05; }
+  100% { opacity: 0; }
+}
+
+/* O palácio recebe a mesma iluminação atmosférica do céu. */
+.scene__palace {
+  filter: brightness(var(--palace-brightness, .3))
+    saturate(var(--palace-saturation, .45))
+    contrast(var(--palace-contrast, 1.05));
+  transition: filter 1.7s ease;
+}
+
+.scene__palace-lights {
+  opacity: var(--palace-lights, .85);
+  transition: opacity 1.7s ease;
+}
+
+.scene__vignette {
+  opacity: var(--weather-vignette-opacity, 1);
+  transition: opacity 1.7s ease, background 1.7s ease;
+}
+
+/* -------------------------------------------------------------------------
+   Controles climáticos
+   ------------------------------------------------------------------------- */
+.scene-controls {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  z-index: 12;
+}
+
+.scene-control {
+  min-height: 44px;
+  padding: .55rem .9rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  color: var(--ink);
+  backdrop-filter: blur(.5rem);
+  -webkit-backdrop-filter: blur(.5rem);
+  cursor: pointer;
+  box-shadow: var(--shadow-inset), var(--shadow-1);
+  font: inherit;
+  font-size: var(--fs-small);
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.scene-control:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.scene-control:focus-visible,
+.weather-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.weather-panel {
+  width: min(17rem, calc(100vw - 2rem));
+  padding: .8rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  backdrop-filter: blur(.8rem);
+  -webkit-backdrop-filter: blur(.8rem);
+  box-shadow: var(--shadow-2);
+  text-align: left;
+}
+
+.weather-panel__label {
+  display: block;
+  margin-bottom: .35rem;
+  color: var(--ink-dim);
+  font-size: var(--fs-small);
+}
+
+.weather-select {
+  width: 100%;
+  min-height: 44px;
+  padding: .55rem .7rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.weather-readout {
+  margin-top: .55rem;
+  color: var(--ink-dim);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+html[data-weather="rain"] .scene__rain,
+html[data-weather="storm"] .scene__rain {
+  opacity: .88;
+}
+
+html[data-weather="drought"] .scene__dry-dust {
+  opacity: .72;
+}
+
+html[data-weather="storm"] .scene__clouds {
+  --weather-cloud-opacity: .92;
+}
+
+html[data-weather="drought"] .scene__clouds {
+  --weather-cloud-opacity: .42;
+  --weather-cloud-brightness: .82;
+  --weather-cloud-saturation: .72;
+  --weather-cloud-contrast: 1.02;
+}
+
+@media (max-width: 560px) {
+  .weather-panel {
+    width: min(15rem, calc(100vw - 1.5rem));
+  }
+
+  .scene-controls {
+    align-self: center;
+  }
+
+  .scene__rain span {
+    animation-duration: calc(var(--speed) * .9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene__rain span,
+  .scene__dry-dust,
+  .scene__lightning,
+  .scene__clouds {
+    animation: none !important;
+  }
+}
+
 /* -------------------------------------------------------------------------
    2. Cena de fundo — céu de Kiev, palácio e bandeira hasteada
 
@@ -2020,3 +2287,6 @@ button:focus-visible {
   line-height: 1.6;
   opacity: 0.9;
 }
+
+/* A variável atmosférica tem precedência sobre a paleta fixa de tema. */
+body { background: var(--weather-body-bg, var(--body-bg)); }

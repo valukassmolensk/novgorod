@@ -60,6 +60,10 @@
       <div class="scene__stars"></div>
       <div class="scene__orb"></div>
       <div class="scene__haze"></div>
+      <div class="scene__weather-haze"></div>
+      <div class="scene__rain" id="sceneRain"></div>
+      <div class="scene__dry-dust" id="sceneDryDust"></div>
+      <div class="scene__lightning" id="sceneLightning"></div>
 
       <div class="scene__clouds scene__clouds--far">
         <i></i><i></i>
@@ -116,7 +120,26 @@
             <p>Período da Restauração: 862–1136</p>
             <p>(período principesco de Novgorod)</p>
           </div>
-          <p class="flag-emoji" aria-hidden="true">🇪🇺</p>
+          <p class="flag-emoji" aria-hidden="true"></p>
+        </div>
+
+        <div class="scene-controls" aria-label="Controles da cena">
+          <button id="weatherToggle" class="scene-control" type="button" aria-expanded="false" aria-controls="weatherPanel">
+            <span aria-hidden="true">🇷🇺</span>
+            <span>Clima</span>
+          </button>
+          <div id="weatherPanel" class="weather-panel" hidden>
+            <label class="weather-panel__label" for="weatherMode">Atmosfera</label>
+            <select id="weatherMode" class="weather-select">
+              <option value="auto">Automático</option>
+              <option value="clear">Céu limpo</option>
+              <option value="cloudy">Nublado</option>
+              <option value="rain">Chuva</option>
+              <option value="storm">Tempestade</option>
+              <option value="drought">Seca</option>
+            </select>
+            <div class="weather-readout" id="weatherReadout" aria-live="polite">Sincronizando céu…</div>
+          </div>
         </div>
 
         <div class="theme-toggle-wrap">

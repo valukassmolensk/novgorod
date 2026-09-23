@@ -81,6 +81,306 @@
     setTimeout(watchFrameRate, 900);
   });
 
+
+  /* ------------------------------------------------------------------
+     1b. Motor atmosférico — ciclo diário + clima interativo
+
+     O clima não depende de um serviço externo: ele é uma simulação local
+     responsiva. "Automático" acompanha o ciclo de luz do relógio do
+     dispositivo, varia a cobertura de nuvens lentamente e introduz
+     precipitação/tempo seco sem saltos visuais. Os modos manuais permitem
+     demonstrar cada fenômeno.
+     ------------------------------------------------------------------ */
+  (function initAtmosphere() {
+    var scene = document.querySelector(".scene");
+    var rain = document.getElementById("sceneRain");
+    var dust = document.getElementById("sceneDryDust");
+    var lightning = document.getElementById("sceneLightning");
+    var weatherToggle = document.getElementById("weatherToggle");
+    var weatherPanel = document.getElementById("weatherPanel");
+    var weatherMode = document.getElementById("weatherMode");
+    var weatherReadout = document.getElementById("weatherReadout");
+
+    if (!scene || !rain) return;
+
+    var WEATHER_KEY = "novgorod-weather-mode";
+    var manualMode = "auto";
+    var autoState = "clear";
+    var lightningTimer = null;
+    var cloudTimer = null;
+    var rainCount = window.matchMedia("(max-width: 700px)").matches ? 46 : 76;
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function isDaylight() {
+      /* O alternador claro/escuro é a autoridade visual: claro = dia,
+         escuro = noite. Assim cada mudança de tema recalibra imediatamente
+         céu, sombras, nuvens, palácio e iluminação. */
+      return html.classList.contains("light");
+    }
+
+    function makeParticles() {
+      rain.textContent = "";
+      dust.textContent = "";
+      for (var i = 0; i < rainCount; i++) {
+        var drop = document.createElement("span");
+        var x = Math.random() * 112 - 6;
+        var width = (Math.random() * 1.4 + 0.55).toFixed(2) + "px";
+        var height = (Math.random() * 18 + 9).toFixed(1) + "px";
+        var speed = (Math.random() * 1.5 + 0.65).toFixed(2) + "s";
+        var delay = (-Math.random() * 4).toFixed(2) + "s";
+        var angle = (-10 - Math.random() * 10).toFixed(1) + "deg";
+        var drift = (Math.random() * 90 + 35).toFixed(0) + "px";
+        drop.style.setProperty("--x", x + "%");
+        drop.style.setProperty("--w", width);
+        drop.style.setProperty("--h", height);
+        drop.style.setProperty("--speed", speed);
+        drop.style.setProperty("--delay", delay);
+        drop.style.setProperty("--angle", angle);
+        drop.style.setProperty("--drift", drift);
+        drop.style.setProperty("--a", (0.18 + Math.random() * 0.5).toFixed(2));
+        rain.appendChild(drop);
+      }
+    }
+
+    function setSky(p) {
+      var day = isDaylight();
+      var base = day
+        ? {
+            sky1: p.sky1 || "#4b86c2",
+            sky2: p.sky2 || "#78add8",
+            sky3: p.sky3 || "#c4dced",
+            ground: p.ground || "#e3d9c4"
+          }
+        : {
+            sky1: p.sky1 || "#050a1a",
+            sky2: p.sky2 || "#111a36",
+            sky3: p.sky3 || "#3d4566",
+            ground: p.ground || "#40394d"
+          };
+
+      var overlay = p.overlay || "rgba(255,255,255,0)";
+      document.documentElement.style.setProperty(
+        "--weather-body-bg",
+        "radial-gradient(ellipse at 78% 12%, " + (day ? "rgba(255,238,180,.38)" : "rgba(110,140,210,.16)") + ", transparent 58%)," +
+        "linear-gradient(180deg," + base.sky1 + " 0%," + base.sky2 + " 34%," + base.sky3 + " 67%," + base.ground + " 100%)"
+      );
+      document.documentElement.style.setProperty("--weather-overlay", overlay);
+      document.documentElement.style.setProperty("--weather-ground", base.ground);
+    }
+
+    function setAtmosphere(mode) {
+      if (mode === "clear") {
+        setSky({
+          sky1: isDaylight() ? "#3f7cb8" : "#050a1a",
+          sky2: isDaylight() ? "#6ba3d6" : "#0b1226",
+          sky3: isDaylight() ? "#a8cdea" : "#34355a",
+          ground: isDaylight() ? "#e7dcc7" : "#4a3f52"
+        });
+        scene.style.setProperty("--weather-cloud-opacity", isDaylight() ? ".46" : ".34");
+        scene.style.setProperty("--weather-cloud-brightness", isDaylight() ? "1.02" : ".42");
+        scene.style.setProperty("--weather-cloud-saturation", isDaylight() ? "1.0" : ".5");
+        scene.style.setProperty("--weather-cloud-contrast", "1");
+        scene.style.setProperty("--weather-haze-opacity", isDaylight() ? ".10" : ".03");
+        scene.style.setProperty("--weather-ground-tint", isDaylight() ? "rgba(222,190,130,.12)" : "rgba(45,40,60,.10)");
+        scene.style.setProperty("--palace-brightness", isDaylight() ? "1" : ".30");
+        scene.style.setProperty("--palace-saturation", isDaylight() ? ".82" : ".45");
+        scene.style.setProperty("--palace-lights", isDaylight() ? "0" : ".86");
+        scene.style.setProperty("--weather-vignette-opacity", "1");
+      } else if (mode === "cloudy") {
+        setSky({
+          sky1: isDaylight() ? "#597b99" : "#11182c",
+          sky2: isDaylight() ? "#8399aa" : "#202943",
+          sky3: isDaylight() ? "#b6c1c7" : "#4a526b",
+          ground: isDaylight() ? "#b9b5aa" : "#454655"
+        });
+        scene.style.setProperty("--weather-cloud-opacity", ".82");
+        scene.style.setProperty("--weather-cloud-brightness", isDaylight() ? ".82" : ".30");
+        scene.style.setProperty("--weather-cloud-saturation", ".55");
+        scene.style.setProperty("--weather-cloud-contrast", "1.08");
+        scene.style.setProperty("--weather-haze-opacity", ".28");
+        scene.style.setProperty("--weather-ground-tint", isDaylight() ? "rgba(95,100,100,.16)" : "rgba(25,28,40,.18)");
+        scene.style.setProperty("--palace-brightness", isDaylight() ? ".78" : ".24");
+        scene.style.setProperty("--palace-saturation", ".62");
+        scene.style.setProperty("--palace-lights", isDaylight() ? ".08" : ".90");
+      } else if (mode === "rain") {
+        setSky({
+          sky1: isDaylight() ? "#3f566c" : "#080e1e",
+          sky2: isDaylight() ? "#657886" : "#151c31",
+          sky3: isDaylight() ? "#8d9ca3" : "#313a54",
+          ground: isDaylight() ? "#777a77" : "#343746"
+        });
+        scene.style.setProperty("--weather-cloud-opacity", ".94");
+        scene.style.setProperty("--weather-cloud-brightness", isDaylight() ? ".64" : ".23");
+        scene.style.setProperty("--weather-cloud-saturation", ".42");
+        scene.style.setProperty("--weather-cloud-contrast", "1.18");
+        scene.style.setProperty("--weather-haze-opacity", ".42");
+        scene.style.setProperty("--weather-ground-tint", "rgba(55,65,70,.22)");
+        scene.style.setProperty("--palace-brightness", isDaylight() ? ".58" : ".20");
+        scene.style.setProperty("--palace-saturation", ".50");
+        scene.style.setProperty("--palace-lights", isDaylight() ? ".18" : ".94");
+      } else if (mode === "storm") {
+        setSky({
+          sky1: "#090f1d",
+          sky2: "#172238",
+          sky3: "#343d56",
+          ground: "#30313d"
+        });
+        scene.style.setProperty("--weather-cloud-opacity", ".98");
+        scene.style.setProperty("--weather-cloud-brightness", ".18");
+        scene.style.setProperty("--weather-cloud-saturation", ".30");
+        scene.style.setProperty("--weather-cloud-contrast", "1.25");
+        scene.style.setProperty("--weather-haze-opacity", ".56");
+        scene.style.setProperty("--weather-ground-tint", "rgba(25,30,38,.34)");
+        scene.style.setProperty("--palace-brightness", ".18");
+        scene.style.setProperty("--palace-saturation", ".38");
+        scene.style.setProperty("--palace-lights", ".98");
+      } else if (mode === "drought") {
+        setSky({
+          sky1: isDaylight() ? "#4e86a9" : "#141b2b",
+          sky2: isDaylight() ? "#9bb5b5" : "#303647",
+          sky3: isDaylight() ? "#d6caa8" : "#5a4e4a",
+          ground: isDaylight() ? "#c9ad72" : "#665443"
+        });
+        scene.style.setProperty("--weather-cloud-opacity", ".38");
+        scene.style.setProperty("--weather-cloud-brightness", isDaylight() ? ".90" : ".38");
+        scene.style.setProperty("--weather-cloud-saturation", ".78");
+        scene.style.setProperty("--weather-cloud-contrast", "1.02");
+        scene.style.setProperty("--weather-haze-opacity", ".62");
+        scene.style.setProperty("--weather-ground-tint", "rgba(210,168,91,.25)");
+        scene.style.setProperty("--palace-brightness", isDaylight() ? "1.06" : ".34");
+        scene.style.setProperty("--palace-saturation", ".82");
+        scene.style.setProperty("--palace-lights", isDaylight() ? "0" : ".80");
+      }
+
+      /* Quantidade de nuvens = profundidade + densidade, não apenas um
+         filtro de cor: cada faixa ocupa uma distância atmosférica distinta. */
+      var cloudBands = scene.querySelectorAll(".scene__clouds");
+      var cloudSets = {
+        clear: [0.28, 0.46, 0.14],
+        cloudy: [0.70, 0.84, 0.58],
+        rain: [0.86, 0.96, 0.76],
+        storm: [0.94, 1.0, 0.92],
+        drought: [0.34, 0.42, 0.12]
+      };
+      var densities = cloudSets[mode] || cloudSets.clear;
+      cloudBands.forEach(function (band, index) {
+        band.style.opacity = densities[index] || 0.3;
+      });
+
+      html.setAttribute("data-weather", mode);
+      if (weatherReadout) {
+        var labels = {
+          clear: "Luz limpa · poucas nuvens · sombras definidas",
+          cloudy: "Nublado · luz difusa · contraste reduzido",
+          rain: "Chuva · céu fechado · piso visualmente úmido",
+          storm: "Tempestade · nuvens densas · relâmpagos intermitentes",
+          drought: "Seca · ar quente · poeira e horizonte desidratado"
+        };
+        weatherReadout.textContent = (isDaylight() ? "Dia · " : "Noite · ") + labels[mode];
+      }
+      scheduleLightning(mode);
+    }
+
+    function chooseAutoWeather() {
+      var hour = new Date().getHours() + new Date().getMinutes() / 60;
+      var wave = (Math.sin(Date.now() / 120000) + 1) / 2;
+      if (hour >= 11 && hour <= 16 && wave > .76) return "drought";
+      if (wave > .88) return "storm";
+      if (wave > .64) return "rain";
+      if (wave > .40) return "cloudy";
+      return "clear";
+    }
+
+    function scheduleLightning(mode) {
+      if (lightningTimer) {
+        clearTimeout(lightningTimer);
+        lightningTimer = null;
+      }
+      if (prefersReducedMotion || mode !== "storm") return;
+      var delay = 4200 + Math.random() * 10000;
+      lightningTimer = setTimeout(function () {
+        lightning.classList.remove("is-flash");
+        void lightning.offsetWidth;
+        lightning.classList.add("is-flash");
+        scheduleLightning(mode);
+      }, delay);
+    }
+
+    function refreshAuto() {
+      if (manualMode !== "auto") return;
+      var next = chooseAutoWeather();
+      if (next !== autoState) {
+        autoState = next;
+        setAtmosphere(autoState);
+      } else {
+        setAtmosphere(autoState);
+      }
+    }
+
+    function syncThemeLighting() {
+      if (manualMode === "auto") refreshAuto();
+    }
+
+    makeParticles();
+    try {
+      var savedMode = localStorage.getItem(WEATHER_KEY);
+      if (savedMode && ["auto","clear","cloudy","rain","storm","drought"].indexOf(savedMode) >= 0) {
+        manualMode = savedMode;
+      }
+    } catch (err) {}
+
+    if (weatherMode) weatherMode.value = manualMode;
+
+    if (weatherToggle && weatherPanel) {
+      weatherToggle.addEventListener("click", function () {
+        var open = weatherToggle.getAttribute("aria-expanded") === "true";
+        weatherToggle.setAttribute("aria-expanded", String(!open));
+        weatherPanel.hidden = open;
+      });
+    }
+
+    if (weatherMode) {
+      weatherMode.addEventListener("change", function () {
+        manualMode = weatherMode.value;
+        try { localStorage.setItem(WEATHER_KEY, manualMode); } catch (err) {}
+        if (manualMode === "auto") {
+          refreshAuto();
+        } else {
+          setAtmosphere(manualMode);
+        }
+      });
+    }
+
+    window.addEventListener("resize", function () {
+      var nextCount = window.matchMedia("(max-width: 700px)").matches ? 46 : 76;
+      if (nextCount !== rainCount) {
+        rainCount = nextCount;
+        makeParticles();
+      }
+    }, { passive: true });
+
+    /* Atualiza lentamente: céu e luz mudam sem saltos perceptíveis. */
+    cloudTimer = window.setInterval(function () {
+      if (manualMode === "auto") refreshAuto();
+      else setAtmosphere(manualMode);
+    }, 45000);
+
+    window.NovgorodWeather = {
+      syncTheme: syncThemeLighting,
+      refresh: refreshAuto
+    };
+
+    if (prefersReducedMotion) {
+      rain.style.opacity = "0";
+      dust.style.animation = "none";
+    }
+
+    refreshAuto();
+  })();
+
   /* ------------------------------------------------------------------
      1. Alternador de tema
      ------------------------------------------------------------------ */
@@ -110,6 +410,9 @@
     }
     if (avatarSource) {
       avatarSource.srcset = avatar.webp;
+    }
+    if (window.NovgorodWeather) {
+      window.NovgorodWeather.syncTheme();
     }
   }
 
