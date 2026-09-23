@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="theme-color" content="#382e2e" />
+    <meta
+      name="description"
+      content="Uma reflexão sobre o sentido de uma restauração pró-memória: continuidade, símbolos, fontes e responsabilidade diante do passado."
+    />
+
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="O que significa restaurar uma Casa? — Blog" />
+    <meta property="og:description" content="Casa Principesca de Novgorod e Ducal da Carantânia" />
+    <meta property="og:image" content="./assets/blog0003.jpeg" />
+    <meta property="og:url" content="https://valukassmolensk.github.io/novgorod/blog0003.html" />
+
+    <link rel="icon" type="image/png" href="./assets/card.png" />
+    <link rel="shortcut icon" type="image/png" href="./assets/card.png" />
+    <link rel="canonical" href="https://valukassmolensk.github.io/novgorod/blog0003.html" />
+
+    <title>O que significa restaurar uma Casa? — Casa Principesca de Novgorod</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <noscript>
+      <style>
+        .reveal {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      </style>
+    </noscript>
+  </head>
+
+  <body>
+    <!-- Cena de fundo: bandeira animada + véu de profundidade + raios de luz + textura -->
+    <div class="scene" aria-hidden="true">
+      <div class="scene__flag"></div>
+      <div class="scene__vignette"></div>
+      <div class="scene__rays"></div>
+      <div class="scene__grain"></div>
+    </div>
+
+    <!-- Filtro SVG usado para dar à bandeira um leve ondular de tecido -->
+    <svg class="sr-only-svg" aria-hidden="true" focusable="false">
+      <filter id="cloth-wave" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.008 0.014"
+          numOctaves="2"
+          seed="7"
+          result="noise"
+        >
+          <animate
+            attributeName="baseFrequency"
+            dur="26s"
+            values="0.008 0.014;0.012 0.009;0.008 0.014"
+            repeatCount="indefinite"
+          />
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
+
+    <div class="progress-banner" id="progressBanner" aria-hidden="true"></div>
+
+    <div class="container">
+      <header class="hero hero--compact">
+        <a class="brand-link" href="./index.html" aria-label="Voltar à página inicial da Casa de Novgorod">
+          <div class="avatar avatar--sm">
+            <picture>
+              <source id="avatarSource" srcset="./assets/card.webp" type="image/webp" />
+              <img
+                id="avatarImg"
+                src="./assets/card.png"
+                alt="Selo da Casa Principesca de Novgorod"
+                width="64"
+                height="64"
+              />
+            </picture>
+          </div>
+          <span class="brand-link__text">
+            <strong>Casa Principesca de Novgorod</strong>
+            <em>Ducal da Carantânia</em>
+          </span>
+        </a>
+
+        <div class="theme-toggle-wrap">
+          <button
+            id="themeToggle"
+            class="theme-toggle"
+            type="button"
+            role="switch"
+            aria-checked="false"
+            aria-label="Alternar entre tema escuro e claro"
+          >
+            <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M20.4 14.9c-1.6.9-3.4 1.3-5.3.9-2.7-.5-4.9-2.4-5.8-4.9-.6-1.7-.6-3.5 0-5.1.3-.8-.5-1.6-1.3-1.2C4.4 6.3 2.5 9.9 3.1 13.7c.6 4 3.9 7.2 7.9 7.8 4.3.6 8.2-1.7 9.9-5.4.4-.8-.4-1.6-1.2-1.2z"
+              />
+            </svg>
+            <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="4.4" fill="currentColor" />
+              <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <line x1="12" y1="1.6" x2="12" y2="4" />
+                <line x1="12" y1="20" x2="12" y2="22.4" />
+                <line x1="1.6" y1="12" x2="4" y2="12" />
+                <line x1="20" y1="12" x2="22.4" y2="12" />
+                <line x1="4.5" y1="4.5" x2="6.2" y2="6.2" />
+                <line x1="17.8" y1="17.8" x2="19.5" y2="19.5" />
+                <line x1="4.5" y1="19.5" x2="6.2" y2="17.8" />
+                <line x1="17.8" y1="6.2" x2="19.5" y2="4.5" />
+              </g>
+            </svg>
+            <span class="toggle-knob"></span>
+          </button>
+          <span class="toggle-label">Tema</span>
+        </div>
+      </header>
+
+      <main>
+        <!-- ================================================================
+             PUBLICAÇÃO INDIVIDUAL
+             Cabeçalho compacto acima traz o link de volta à Casa; abaixo,
+             o artigo (.post) reúne título, galeria de imagens de destaque
+             (.post__hero, em grade responsiva), corpo do texto e ações de
+             navegação/compartilhamento.
+             ================================================================ -->
+        <article
+          class="post reveal"
+          data-share-title="Símbolos e memória: ecos heráldicos eslavos"
+          data-share-url="https://valukassmolensk.github.io/novgorod/blog0003.html"
+        >
+          <a class="post__back" href="./index.html#blog">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15 18l-6-6 6-6"
+              />
+            </svg>
+            Voltar ao blog
+          </a>
+
+          <header class="post__header">
+            <h1>O que significa restaurar uma Casa?</h1>
+            <p class="post__meta">Casa Principesca de Novgorod</p>
+          </header>
+
+          <!-- Galeria de imagens de destaque: .post__hero organiza-se em
+               grade responsiva (ver style.css §7b), adaptando-se de uma
+               coluna única no celular a várias colunas em telas largas. -->
+          <div class="post__hero">
+            <picture>
+              <source srcset="./assets/blog0003.webp" type="image/webp" />
+              <img
+                src="./assets/blog0003.jpeg"
+                alt="Imagem de destaque da publicação sobre a restauração pró-memória da Casa Principesca de Novgorod"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
+          </div>
+
+          <div class="post__body">
+            <p>Há algo de particularmente delicado na palavra “restauração” quando ela se aplica a uma instituição cuja história atravessou séculos. Restaurar uma construção significa, em alguma medida, devolver forma a algo que permanece materialmente diante de nós. Quando aquilo que se pretende restaurar pertence ao domínio da memória, porém, a questão se torna mais complexa, porque o passado não está simplesmente esperando para ser reconstruído. Ele chega ao presente por meio de documentos, vestígios, interpretações, tradições e lembranças, e cada geração que se aproxima dele precisa decidir como lidar com aquilo que recebeu.</p>
+            <p>É nesse terreno que se situa a restauração pró-memória da Casa Principesca de Novgorod.</p>
+            <p>Novgorod ocupa um lugar singular na história do mundo eslavo oriental. Entre 862 e 1136, a cidade esteve inserida no período principesco que antecedeu a instituição da República de Novgorod. Ao longo desses séculos, formou-se uma experiência histórica marcada por relações políticas próprias, intensa atividade comercial, circulação cultural, produção escrita e uma vida urbana cuja complexidade pode ser percebida em fontes que continuam despertando o interesse de historiadores, linguistas e arqueólogos.</p>
+            <p>Em 1136, a estrutura política que caracterizava o período principesco chegou ao fim. A mudança foi profunda, mas o desaparecimento de uma forma de governo não significou o desaparecimento da cidade nem da cultura que havia se desenvolvido ao longo dos séculos anteriores. Novgorod continuou sua trajetória histórica, enquanto a memória do período principesco passou a integrar uma história muito mais longa, que ultrapassa as instituições políticas que lhe deram forma em determinado momento.</p>
+            <p>Essa distinção é fundamental para compreender o sentido da restauração contemporânea.</p>
+            <p>Uma restauração pró-memória não pretende apagar a distância entre o presente e o período histórico que inspira a Casa. Pelo contrário, parte justamente do reconhecimento dessa distância. O mundo de Novgorod entre os séculos IX e XII pertence às circunstâncias de seu próprio tempo, e qualquer tentativa de reproduzi-lo literalmente no século XXI produziria uma representação artificial. O que pode ser retomado é a relação com seu legado: o estudo de sua história, a preservação de seus símbolos, a valorização de sua cultura, a investigação de sua língua e de seus documentos e a transmissão responsável desse patrimônio às gerações seguintes.</p>
+            <p>É nesse ponto que a palavra “Casa” adquire uma dimensão que ultrapassa a genealogia.</p>
+            <p>Na tradição europeia, uma Casa esteve muitas vezes relacionada à linhagem e ao exercício de autoridade. Entretanto, sua memória também foi formada por tudo aquilo que uma geração recebeu da anterior e transmitiu à seguinte: nomes, símbolos, histórias, documentos, vínculos, obrigações e formas de compreender a própria origem. Quando uma função política desaparece, os elementos que compõem essa memória não desaparecem necessariamente com ela. Podem permanecer dispersos, incorporados à historiografia, conservados em arquivos, transformados por novas interpretações ou simplesmente esquecidos durante algum tempo.</p>
+            <p>Por essa razão, restaurar uma Casa exige, antes de qualquer afirmação de continuidade, uma reflexão sobre a própria natureza da continuidade.</p>
+            <p>O que exatamente continua?</p>
+            <p>Continua uma instituição histórica? Uma linhagem? Um conjunto de símbolos? Uma tradição cultural? Uma narrativa familiar? Ou uma responsabilidade assumida no presente diante de um legado que pertence, em sentido mais amplo, à história?</p>
+            <p>A resposta precisa ser cuidadosa, porque essas categorias não são equivalentes. Uma instituição política medieval não pode ser simplesmente transportada para o presente como se os séculos intermediários não tivessem existido. Uma tradição cultural, por outro lado, pode ser estudada e reinterpretada por pessoas que vivem muito depois do período em que ela se formou. Um símbolo pode atravessar contextos diferentes e adquirir novos significados. Uma família pode estabelecer uma relação memorial com determinado passado sem que isso transforme automaticamente essa relação em uma continuidade histórica documental.</p>
+            <p>Reconhecer essas diferenças é uma forma de respeito à própria história.</p>
+            <p>Por isso, a Casa restaurada assume a memória como campo de responsabilidade. Onde existirem fontes, elas devem ser tratadas como fontes. Onde houver interpretação, a interpretação precisa ser reconhecida como tal. Onde houver uma construção simbólica contemporânea, ela pode possuir valor cultural e familiar sem precisar ser apresentada como um vestígio medieval.</p>
+            <p>Essa distinção é especialmente importante quando se trabalha com símbolos.</p>
+            <p>O lobo, o leão, a águia, o cervo ou o pavão podem adquirir significados dentro de uma tradição contemporânea sem que seja necessário atribuir a cada um deles uma função histórica específica que as fontes não comprovem. O símbolo vive em dois tempos: existe aquilo que ele significou em determinada cultura e existe aquilo que uma comunidade escolhe significar por meio dele no presente. A tarefa memorial consiste em manter essas duas dimensões em diálogo, sem confundi-las.</p>
+            <p>O mesmo vale para a língua.</p>
+            <p>Aprender o antigo novgorodiano a partir das fontes disponíveis é uma maneira concreta de aproximar-se da experiência histórica de seus habitantes. As cartas em casca de bétula possuem, nesse aspecto, uma importância extraordinária, porque aproximam o pesquisador de uma dimensão cotidiana da sociedade medieval. Elas permitem observar pessoas escrevendo sobre negócios, relações pessoais, necessidades práticas e conflitos, revelando uma sociedade que deixa de aparecer apenas como cenário das grandes decisões políticas e passa a ser percebida também através das vozes de indivíduos.</p>
+            <p>A memória torna-se mais humana quando consegue alcançar essas pequenas marcas da existência.</p>
+            <p>Esse aspecto é essencial para qualquer projeto de preservação. Uma Casa que se limita a recordar príncipes, títulos e acontecimentos políticos preserva apenas uma parte da história. A civilização que se pretende compreender era formada também por comerciantes, artesãos, religiosos, trabalhadores, famílias, crianças e pessoas cujos nomes talvez jamais tenham alcançado os grandes registros históricos, mas cuja vida aparece, de maneira inesperada, em documentos cotidianos.</p>
+            <p>Preservar uma tradição, portanto, exige ampliar o olhar até que aquilo que parecia periférico revele sua importância.</p>
+            <p>É também por essa razão que a restauração da Casa de Novgorod possui uma dimensão cultural que não se esgota na própria Casa. A memória de Novgorod pertence a uma história muito mais ampla, relacionada à formação do mundo eslavo oriental e às transformações políticas, econômicas, religiosas e culturais que marcaram a Europa medieval. A Casa pode assumir o compromisso de estudar e transmitir essa herança, mas não pode transformar esse compromisso em apropriação exclusiva de uma história que ultrapassa qualquer instituição contemporânea.</p>
+            <p>A responsabilidade memorial nasce justamente desse limite.</p>
+            <p>Quem guarda uma memória precisa reconhecer que ela é maior do que aquele que a guarda.</p>
+            <p>Essa compreensão também orienta a relação com a Carantânia. A tradição carantaniana pertence a uma experiência histórica própria, desenvolvida em outro espaço e sob outras circunstâncias. Sua aproximação com Novgorod pode ser estudada a partir do universo mais amplo das tradições eslavas, das formas históricas de organização comunitária e das diferentes experiências políticas dos povos eslavos. A aproximação, entretanto, torna-se intelectualmente mais significativa quando preserva as diferenças entre as duas experiências em vez de dissolvê-las numa narrativa única.</p>
+            <p>É justamente nessa disposição para distinguir que a memória encontra uma de suas formas mais maduras.</p>
+            <p>Uma restauração que deseja permanecer no campo histórico-cultural precisa resistir à tentação de preencher todas as lacunas do passado. Existem perguntas para as quais as fontes oferecem respostas; existem outras para as quais oferecem apenas indícios; há ainda aquelas diante das quais o silêncio documental permanece. Esse silêncio não precisa ser transformado em narrativa para que a tradição conserve sua dignidade.</p>
+            <p>Aceitar aquilo que não sabemos também é uma forma de preservar.</p>
+            <p>Essa postura modifica a própria compreensão de honra. Se uma dignidade honorífica estiver vinculada à memória de uma Casa, ela não deverá ser compreendida como privilégio jurídico ou como superioridade sobre aqueles que não a possuem. Seu sentido encontra-se na responsabilidade associada ao reconhecimento. Quanto maior a honra recebida, maior deve ser o cuidado com a palavra, com a história e com as pessoas que participam da comunidade de memória construída em torno dela.</p>
+            <p>A autoridade memorial, nesse sentido, é uma autoridade de responsabilidade.</p>
+            <p>Ela não depende da capacidade de ordenar a vida dos outros, mas da disposição de responder pelo modo como uma tradição é apresentada, estudada e transmitida. É uma tarefa que exige disciplina intelectual, respeito às fontes, abertura ao diálogo e disposição para rever interpretações quando novas evidências assim exigirem.</p>
+            <p>Talvez seja justamente aqui que a restauração deixe de ser uma questão exclusivamente institucional e adquira uma dimensão filosófica.</p>
+            <p>Restaurar uma Casa significa assumir uma posição diante do tempo. O passado já aconteceu e não pode ser modificado. O presente, entretanto, pode decidir como irá recordá-lo. Essa escolha produz consequências, porque toda memória transmitida influencia aquilo que uma geração posterior terá condições de conhecer.</p>
+            <p>O guardião de uma tradição encontra-se, portanto, entre duas responsabilidades. Recebe algo que não criou e entrega algo que não lhe pertence inteiramente. Entre uma coisa e outra existe seu próprio tempo, no qual terá de decidir o que estudar, o que preservar, o que questionar e o que transmitir.</p>
+            <p>Essa talvez seja a dimensão mais profunda de uma restauração pró-memória.</p>
+            <p>Ela não pede que o passado volte a existir da maneira como existiu. Pede que o presente seja suficientemente responsável para não permitir que aquilo que merece ser conhecido desapareça por negligência, simplificação ou esquecimento.</p>
+            <p>Por isso, a Casa Principesca de Novgorod, em sua forma contemporânea, assume sua restauração como um compromisso de interesse exclusivamente histórico-cultural e familiar. Sua tarefa encontra-se no estudo da tradição, na preservação de sua memória, na valorização de seus símbolos, na investigação de sua cultura e na transmissão desse conhecimento, sempre respeitando a distância que separa o presente do mundo histórico ao qual se volta.</p>
+            <p>A pergunta inicial, então, pode ser retomada de outra maneira.</p>
+            <p>O que significa restaurar uma Casa?</p>
+            <p>Significa reconhecer que algumas heranças não podem ser recebidas como propriedades, porque seu verdadeiro conteúdo é a responsabilidade de mantê-las inteligíveis para aqueles que virão depois de nós.</p>
+            <p>Uma Casa restaurada não devolve ao mundo aquilo que o tempo levou. Ela oferece ao presente uma oportunidade de olhar novamente para aquilo que o tempo poderia ter levado ao esquecimento.</p>
+            <p>E talvez seja justamente nessa passagem entre memória e responsabilidade que uma tradição encontra sua forma mais legítima de continuar.</p>
+            <p class="post__signature">
+              <strong>Valukas Smolensk von Lopes</strong><br />
+              Knez i Vojvoda da Casa Principesca de Novgorod e Ducal da Carantânia<br />
+              Restauração pró-memória de interesse exclusivamente histórico-cultural e familiar
+            </p>
+          </div>
+
+          <div class="post__actions">
+            <a href="./index.html#blog" class="blog-post__link">← Voltar ao blog</a>
+            <button class="share-btn" type="button" aria-label="Compartilhar publicação">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="18" cy="5" r="2.6" />
+                  <circle cx="6" cy="12" r="2.6" />
+                  <circle cx="18" cy="19" r="2.6" />
+                  <line x1="8.3" y1="10.6" x2="15.7" y2="6.4" />
+                  <line x1="8.3" y1="13.4" x2="15.7" y2="17.6" />
+                </g>
+              </svg>
+              <span>Compartilhar</span>
+            </button>
+          </div>
+        </article>
+      </main>
+
+      <!-- ================================================================
+           RODAPÉ / REDES SOCIAIS
+           ================================================================ -->
+      <footer>
+        <div class="divider" aria-hidden="true"><span class="divider__mark"></span></div>
+
+        <h2 class="section-title">Instagram</h2>
+        <ul class="social" id="social">
+          <li>
+            <a
+              href="https://instagram.com/armice.novgorod"
+              aria-label="Instagram da Casa de Novgorod"
+              target="_blank"
+              rel="noopener"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <g fill="none" stroke="currentColor" stroke-width="1.7">
+                  <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2" />
+                  <circle cx="12" cy="12" r="4.4" />
+                  <circle cx="17.15" cy="6.85" r="1" fill="currentColor" stroke="none" />
+                </g>
+              </svg>
+            </a>
+          </li>
+        </ul>
+
+        <p class="credit">
+          <a href="https://www.instagram.com/dacunhadb" target="_blank" rel="noopener">Made by daCunhadB</a>
+        </p>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="./scripts.js"></script>
+  </body>
+</html>
