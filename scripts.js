@@ -727,6 +727,8 @@
       progressBanner.style.width = Math.min(100, Math.max(0, progress)) + "%";
     }
 
+    /* As nuvens agora fluem via CSS animation-duration (wind), sem depender
+       de scroll-y para se mover. O gyro-wrap aplica paralaxe de scroll. */
     html.style.setProperty("--scroll-y", prefersReducedMotion ? "0" : scrollTop.toFixed(1));
 
     if (!prefersReducedMotion) {
@@ -736,7 +738,9 @@
       lastScroll = scrollTop;
       lastTime = now;
 
-      windTarget = Math.min(GUST_MAX, BREEZE + speed * 0.55);
+      /* A rolagem gera rajada de vento — as nuvens aceleram naturalmente
+         através do --wind e nunca param (play-state sempre "running"). */
+      windTarget = Math.min(GUST_MAX, BREEZE + speed * 0.65);
       startWindLoop();
     }
 
@@ -1003,259 +1007,58 @@
 
   updateOnScroll();
 
-  /* ===========================================================================
-     6. Panorama 360°×180° de Novgorod 862 d.C.
+  /* ------------------------------------------------------------------
+     6. Giroscópio — perspectiva 3D cinematográfica (iOS/Android)
 
-     Um canvas fixo atrás da cena principal renderiza o entorno completo em
-     360° horizontais × 180° verticais. Oito segmentos WebP (pano-N, NE, E,
-     SE, S, SO, O, NO) cobrem o cilindro ao redor do usuário.
+     Converte os dados do DeviceOrientation em inclinação da cena.
+     O gyro-wrap engloba TODA a cena: estrelas, astro, nuvens, palácio
+     e bandeira recebem a perspectiva conjuntamente, como um wallpaper
+     3D do iOS. Cada camada da cena continua tendo profundidades
+     diferentes (background-size, posições absolutas), o que já cria
+     o efeito de paralaxe entre elas.
 
-     O giroscópio controla o ponto de vista: inclinação lateral → rotação
-     horizontal (azimute), inclinação frente/trás → ângulo vertical (elevation).
-     Em desktop o mouse substitui o giroscópio.
-
-     O mesmo sistema de vento que move as nuvens move o azimute lentamente,
-     dando a sensação de um panorama vivo.
-     =========================================================================== */
-  (function initPanorama() {
-    var canvas = document.getElementById("panCanvas");
-    if (!canvas || prefersReducedMotion) return;
-
-    var ctx = canvas.getContext("2d");
-    var W = 0, H = 0;
-
-    /* Azimute (horizontal 0-360°) e elevação (vertical -90 a +90°) */
-    var azimuth = 180;       /* começa olhando para o sul (kremlin à frente) */
-    var elevation = 0;
-    var targetAz = 180;
-    var targetEl = 0;
-
-    /* Drift lento de vento (move o panorama horizontalmente) */
-    var windDriftAz = 0;
-
-    /* FOV em graus (quanto do cilindro é visível) */
-    var FOV_H = 90;   /* graus horizontais visíveis */
-    var FOV_V = 60;   /* graus verticais visíveis */
-
-    /* Segmentos: 8 fatias de 45° cobrindo 360° */
-    var SEGS = [
-      { az: 0,   name: "n"  },
-      { az: 45,  name: "ne" },
-      { az: 90,  name: "e"  },
-      { az: 135, name: "se" },
-      { az: 180, name: "s"  },  /* frente */
-      { az: 225, name: "so" },
-      { az: 270, name: "o"  },
-      { az: 315, name: "no" },
-    ];
-
-    /* Pré-carregar imagens dos segmentos */
-    var segImgs = {};
-    var loaded = 0;
-    var total = SEGS.length;
-
-    SEGS.forEach(function(seg) {
-      var img = new Image();
-      img.onload = function() {
-        segImgs[seg.name] = img;
-        loaded++;
-        if (loaded === total) scheduleRender();
-      };
-      img.onerror = function() {
-        loaded++;
-        if (loaded === total) scheduleRender();
-      };
-      img.src = "./assets/pano-" + seg.name + ".webp";
-    });
-
-    function resize() {
-      W = canvas.width  = window.innerWidth;
-      H = canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener("resize", function() { resize(); scheduleRender(); }, { passive: true });
-
-    /* Calcula a fração de cada segmento visível e o offset horizontal */
-    function renderPanorama() {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, W, H);
-
-      var az = ((azimuth % 360) + 360) % 360;
-      var el = Math.max(-45, Math.min(45, elevation));
-
-      /* Para cada segmento de 45°, verificar se está na janela de visão */
-      var degPerPx = FOV_H / W;             /* graus por pixel */
-      var halfFOV  = FOV_H / 2;
-
-      /* Offset vertical: elevação desloca os segmentos */
-      var elOffsetFrac = el / 90;           /* -0.5 a +0.5 */
-
-      SEGS.forEach(function(seg) {
-        var img = segImgs[seg.name];
-        if (!img) return;
-
-        /* Diferença angular (menor caminho) */
-        var diff = az - seg.az;
-        /* normalizar para -180..180 */
-        while (diff > 180)  diff -= 360;
-        while (diff < -180) diff += 360;
-
-        /* Faixa de visibilidade: segmento de 45°, mais margem de ½ FOV */
-        var segHalf = 22.5 + halfFOV;
-        if (Math.abs(diff) > segHalf + 5) return;
-
-        /* Posição x do centro do segmento na tela */
-        var centerX = W / 2 - diff / degPerPx;
-
-        /* Largura do segmento em pixels */
-        var segPxW = 45 / degPerPx;   /* px para 45° */
-
-        /* Offset vertical (elevação) */
-        var segNativeH = img.naturalHeight || H;
-        var segH = H * (180 / FOV_V);         /* altura do segmento completo */
-        var yOffset = (segH - H) / 2 + elOffsetFrac * segNativeH * 0.6;
-
-        /* Desenhar segmento */
-        var drawX = centerX - segPxW / 2;
-        var drawY = -yOffset;
-
-        ctx.drawImage(img, drawX, drawY, segPxW, segH);
-
-        /* Suavizar emenda entre segmentos com gradiente lateral */
-        var fadeW = Math.min(40, segPxW * 0.08);
-
-        var gl = ctx.createLinearGradient(drawX, 0, drawX + fadeW, 0);
-        gl.addColorStop(0, "rgba(0,0,0,.55)");
-        gl.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = gl;
-        ctx.fillRect(drawX, drawY, fadeW, segH);
-
-        var gr = ctx.createLinearGradient(drawX + segPxW - fadeW, 0, drawX + segPxW, 0);
-        gr.addColorStop(0, "rgba(0,0,0,0)");
-        gr.addColorStop(1, "rgba(0,0,0,.55)");
-        ctx.fillStyle = gr;
-        ctx.fillRect(drawX + segPxW - fadeW, drawY, fadeW, segH);
-      });
-
-      /* Névoa atmosférica: escurece topo e base do canvas */
-      var topFog = ctx.createLinearGradient(0, 0, 0, H * 0.35);
-      topFog.addColorStop(0,   html.classList.contains("light")
-                               ? "rgba(100,150,200,.55)"
-                               : "rgba(5,8,22,.72)");
-      topFog.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = topFog;
-      ctx.fillRect(0, 0, W, H * 0.35);
-
-      var botFog = ctx.createLinearGradient(0, H * 0.7, 0, H);
-      botFog.addColorStop(0, "rgba(0,0,0,0)");
-      botFog.addColorStop(1,  html.classList.contains("light")
-                               ? "rgba(80,60,30,.48)"
-                               : "rgba(15,10,4,.66)");
-      ctx.fillStyle = botFog;
-      ctx.fillRect(0, H * 0.7, W, H * 0.3);
-    }
-
-    var renderQueued = false;
-    function scheduleRender() {
-      if (renderQueued) return;
-      renderQueued = true;
-      requestAnimationFrame(function() {
-        renderQueued = false;
-        renderPanorama();
-      });
-    }
-
-    /* Animação contínua (pan lento do vento) */
-    var lastPanTime = performance.now();
-    function panLoop(now) {
-      var dt = now - lastPanTime;
-      lastPanTime = now;
-
-      /* Drift de vento: desloca lentamente o azimute */
-      var windVal = Number(html.style.getPropertyValue("--wind")) || 1;
-      windDriftAz = (windDriftAz + dt * 0.0012 * (windVal - 0.8)) % 360;
-
-      /* Lerp suavizado rumo ao alvo */
-      var lerp = 0.06;
-      /* Diferença de ângulo (caminho mais curto) */
-      var dAz = targetAz - azimuth;
-      while (dAz > 180)  dAz -= 360;
-      while (dAz < -180) dAz += 360;
-      azimuth  += dAz  * lerp;
-      elevation += (targetEl - elevation) * lerp;
-
-      var settled = Math.abs(dAz) < 0.05 && Math.abs(targetEl - elevation) < 0.05;
-      if (!settled) {
-        renderPanorama();
-      }
-
-      requestAnimationFrame(panLoop);
-    }
-    requestAnimationFrame(panLoop);
-
-    /* Expor controle para o giroscópio */
-    window._panView = {
-      setTarget: function(az, el) {
-        targetAz = ((az % 360) + 360) % 360;
-        targetEl = Math.max(-45, Math.min(45, el));
-      },
-      nudgeAz: function(delta) {
-        targetAz = ((targetAz + delta) % 360 + 360) % 360;
-      }
-    };
-  })();
-
-
-  /* ===========================================================================
-     7. Giroscópio cinematográfico 3D + paralaxe do panorama
-
-     Em dispositivos móveis: DeviceOrientationEvent (beta/gamma).
-     Em desktop: mouse como substituto.
-
-     O gyro-wrap (cena principal) recebe perspectiva 3D limitada.
-     O canvas panorâmico recebe azimute e elevação irrestrito (360°×180°).
-     =========================================================================== */
+     Em desktop, o mouse imita o giroscópio para que o efeito seja
+     visível em qualquer dispositivo.
+     ------------------------------------------------------------------ */
   (function initGyroscope() {
     var gyroWrap = document.querySelector(".scene__gyro-wrap");
     if (!gyroWrap || prefersReducedMotion) return;
 
-    /* Estado suavizado do gyro-wrap (perspectiva da cena) */
-    var tiltX = 0, tiltY = 0;
-    var targetTX = 0, targetTY = 0;
+    /* Estado suavizado */
+    var tiltX = 0, tiltY = 0;          // valores atuais (suavizados)
+    var targetX = 0, targetY = 0;      // valores alvo (brutos do sensor)
     var gyroLoop = null;
 
-    /* Limites do gyro-wrap: perspectiva intensa mas contida */
-    var MAX_TX = 9;   /* graus verticais máx */
-    var MAX_TY = 13;  /* graus horizontais máx */
+    /* Intensidade da perspectiva: quanto maior, mais dramático */
+    var MAX_TILT_X = 8;   // graus de inclinação vertical máx
+    var MAX_TILT_Y = 12;  // graus de inclinação horizontal máx
 
+    /* Paralaxe de scroll: camadas mais distantes movem menos */
     function applyGyro() {
-      var sy = Number(html.style.getPropertyValue("--scroll-y")) || 0;
-      var shiftX = tiltY * -3.2;
-      var shiftY = tiltX * 2.0 + sy * -0.012;
-
+      var scrollShiftX = 0;
+      var scrollShiftY = 0;
+      if (!prefersReducedMotion) {
+        var sy = Number(html.style.getPropertyValue("--scroll-y")) || 0;
+        /* Deslocamento horizontal suave baseado na inclinação e no scroll */
+        scrollShiftX = tiltY * -2.8;
+        scrollShiftY = tiltX * 1.8 + sy * -0.012;
+      }
       gyroWrap.style.transform =
         "perspective(900px)" +
         " rotateX(" + tiltX.toFixed(3) + "deg)" +
         " rotateY(" + tiltY.toFixed(3) + "deg)" +
-        " translateX(" + shiftX.toFixed(2) + "px)" +
-        " translateY(" + shiftY.toFixed(2) + "px)";
-
-      /* Atualizar luz de volume com posição do astro */
-      var orbLight = document.querySelector(".scene__orb-light");
-      if (orbLight) {
-        var ox = html.style.getPropertyValue("--orb-x") || "70%";
-        var oy = html.style.getPropertyValue("--orb-y") || "10%";
-        orbLight.style.left = ox;
-        orbLight.style.top  = oy;
-      }
+        " translateX(" + scrollShiftX.toFixed(2) + "px)" +
+        " translateY(" + scrollShiftY.toFixed(2) + "px)";
     }
 
     function gyroStep() {
-      tiltX += (targetTX - tiltX) * 0.082;
-      tiltY += (targetTY - tiltY) * 0.082;
+      /* Suavização exponencial — responde rápido, desacelera elegante */
+      tiltX += (targetX - tiltX) * 0.085;
+      tiltY += (targetY - tiltY) * 0.085;
       applyGyro();
 
-      if (Math.abs(targetTX - tiltX) < 0.008 && Math.abs(targetTY - tiltY) < 0.008) {
+      var settled = Math.abs(targetX - tiltX) < 0.01 && Math.abs(targetY - tiltY) < 0.01;
+      if (settled) {
         gyroLoop = null;
         return;
       }
@@ -1263,208 +1066,250 @@
     }
 
     function scheduleGyro() {
-      if (!gyroLoop) gyroLoop = requestAnimationFrame(gyroStep);
+      if (gyroLoop === null) {
+        gyroLoop = requestAnimationFrame(gyroStep);
+      }
     }
 
-    /* Calibração do giroscópio real */
+    /* --- Giroscópio real (dispositivos móveis) --- */
     var hasGyro = false;
-    var baseBeta = null, baseGamma = null;
+    var baseAlpha = null, baseBeta = null, baseGamma = null;
 
     function onDeviceOrientation(evt) {
+      /* Calibrar na primeira leitura */
       if (baseBeta === null) {
-        baseBeta  = evt.beta  || 0;
+        baseBeta = evt.beta || 0;
         baseGamma = evt.gamma || 0;
+        baseAlpha = evt.alpha || 0;
       }
-      var rawX = (evt.beta  || 0) - baseBeta;
+
+      /* beta: inclinação frente/trás (-180..180); gamma: esquerda/direita (-90..90) */
+      var rawX = (evt.beta || 0) - baseBeta;
       var rawY = (evt.gamma || 0) - baseGamma;
 
-      /* Perspectiva do gyro-wrap (limitada) */
-      targetTX = Math.max(-MAX_TX, Math.min(MAX_TX, rawX * 0.18));
-      targetTY = Math.max(-MAX_TY, Math.min(MAX_TY, rawY * 0.22));
-
-      /* Panorama: mapeamento mais amplo para explorar os 360° */
-      if (window._panView) {
-        /* Cada 90° de gamma → 180° de azimute */
-        var panAz = 180 + rawY * 2.0;   /* sul (180°) como centro */
-        var panEl = rawX * 0.5;         /* elevação */
-        window._panView.setTarget(panAz, panEl);
-      }
-
-      /* Expor inclinação para respingos */
-      window._gyroTilt = function() { return { x: targetTX, y: targetTY }; };
+      /* Limitar e mapear para graus de perspectiva */
+      targetX = Math.max(-MAX_TILT_X, Math.min(MAX_TILT_X, rawX * 0.18));
+      targetY = Math.max(-MAX_TILT_Y, Math.min(MAX_TILT_Y, rawY * 0.22));
 
       if (!hasGyro) {
         hasGyro = true;
+        /* Remover listener de mouse quando giroscópio real está ativo */
         window.removeEventListener("mousemove", onMouseMove);
       }
       scheduleGyro();
     }
 
-    /* iOS 13+: pedir permissão no primeiro toque */
-    function requestGyro() {
+    /* --- Respingos: re-direcionar de acordo com inclinação --- */
+    function getGyroTiltForDroplets() {
+      /* Retorna o ângulo de inclinação atual para física de respingos */
+      return { x: tiltX, y: tiltY };
+    }
+
+    window._gyroTilt = getGyroTiltForDroplets;
+
+    /* Solicitar permissão em iOS 13+ */
+    function requestGyroPermission() {
       if (typeof DeviceOrientationEvent !== "undefined" &&
           typeof DeviceOrientationEvent.requestPermission === "function") {
         DeviceOrientationEvent.requestPermission()
-          .then(function(s) {
-            if (s === "granted") {
+          .then(function(state) {
+            if (state === "granted") {
               window.addEventListener("deviceorientation", onDeviceOrientation, { passive: true });
             }
-          }).catch(function() {});
+          })
+          .catch(function() {});
       } else if (typeof DeviceOrientationEvent !== "undefined") {
         window.addEventListener("deviceorientation", onDeviceOrientation, { passive: true });
       }
     }
 
+    /* Iniciar giroscópio: tentar direto; em iOS 13+ precisará de gesto do usuário */
     if (typeof DeviceOrientationEvent !== "undefined") {
       if (typeof DeviceOrientationEvent.requestPermission === "function") {
-        document.addEventListener("touchstart", function iot() {
-          document.removeEventListener("touchstart", iot);
-          requestGyro();
+        /* iOS 13+: só ativa após gesto. O primeiro toque qualquer serve. */
+        document.addEventListener("touchstart", function onFirstTouch() {
+          document.removeEventListener("touchstart", onFirstTouch);
+          requestGyroPermission();
         }, { once: true, passive: true });
       } else {
         window.addEventListener("deviceorientation", onDeviceOrientation, { passive: true });
       }
     }
 
-    /* Fallback: mouse imita giroscópio em desktop */
+    /* --- Fallback: mouse simula giroscópio em desktop --- */
     function onMouseMove(evt) {
-      var cx = window.innerWidth  / 2;
+      var cx = window.innerWidth / 2;
       var cy = window.innerHeight / 2;
-      var nx =  (evt.clientX - cx) / cx;  /* -1 a 1 */
-      var ny =  (evt.clientY - cy) / cy;  /* -1 a 1 */
+      var nx = (evt.clientX - cx) / cx;   // -1 a 1
+      var ny = (evt.clientY - cy) / cy;   // -1 a 1
 
-      targetTY = nx * MAX_TY * 0.55;
-      targetTX = ny * -MAX_TX * 0.45;
-
-      if (window._panView) {
-        window._panView.setTarget(180 + nx * 35, ny * -15);
-      }
-
+      targetY = nx * MAX_TILT_Y * 0.55;
+      targetX = ny * -MAX_TILT_X * 0.45;
       scheduleGyro();
     }
+
     window.addEventListener("mousemove", onMouseMove, { passive: true });
 
-    /* Atualizar gyro ao rolar (shiftY muda) */
-    window.addEventListener("scroll", scheduleGyro, { passive: true });
+    /* Re-aplicar ao rolar (o scroll muda a translação Y do gyro-wrap) */
+    window.addEventListener("scroll", function() {
+      scheduleGyro();
+    }, { passive: true });
 
+    /* Inicialização suave */
     scheduleGyro();
   })();
 
+  /* ------------------------------------------------------------------
+     7. Respingos de chuva realistas — canvas na tela do usuário
 
-  /* ===========================================================================
-     8. Respingos de chuva realistas — canvas na tela (giroscópio)
+     Os respingos são gotas de água que caem e escorrem na "tela"
+     (não na cena de fundo). O giroscópio controla a direção do
+     escorrimento: quando o celular está flat, as gotas acumulam;
+     quando inclinado, escorrem nessa direção.
 
-     Gotas de água que escorrem na "tela" do usuário. O giroscópio controla a
-     direção: celular flat → gotas acumulam; inclinado → escorrem.
-     =========================================================================== */
+     Inspirado nos wallpapers dinâmicos de clima do iOS 26.
+     ------------------------------------------------------------------ */
   (function initRainDroplets() {
     var canvas = document.getElementById("rainCanvas");
     if (!canvas) return;
 
     var ctx = canvas.getContext("2d");
-    var W = 0, H = 0;
-    var drops = [];
-    var MAX_DROPS = 16;
+    var W, H;
+    var droplets = [];
+    var MAX_DROPS = 18;   /* poucos respingos, muito realistas */
     var active = false;
     var raf = null;
 
     function resize() {
-      W = canvas.width  = window.innerWidth;
+      W = canvas.width = window.innerWidth;
       H = canvas.height = window.innerHeight;
     }
     resize();
     window.addEventListener("resize", resize, { passive: true });
 
-    function makeDrop() {
+    /* Estado de um respingo individual */
+    function createDroplet() {
       return {
         x: Math.random() * W,
-        y: Math.random() * H * 0.65 + 20,
-        r: 2.5 + Math.random() * 5,
+        y: Math.random() * H * 0.7 + 20,
+        r: 2 + Math.random() * 5,         /* raio da gota */
         life: 0,
-        maxLife: 200 + Math.random() * 240,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: 0.08 + Math.random() * 0.22,
-        trail: [],
-        trailMax: 18 + Math.random() * 28,
-        alpha: 0
+        maxLife: 180 + Math.random() * 220,
+        /* velocidade de escorrimento */
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: 0.08 + Math.random() * 0.18,
+        trail: [],                          /* rastro de escorrimento */
+        trailMax: 20 + Math.random() * 30,
+        dripping: false,
+        dropInterval: 40 + Math.random() * 80,
+        dropTimer: 0,
+        /* opacidade varia com o ciclo de vida */
+        alpha: 0,
+        flat: false                         /* gota achatada quando plana */
       };
     }
 
-    function gravity() {
-      var gx = 0, gy = 0.25;
+    /* Calcular gravidade considerando giroscópio */
+    function getGravity() {
+      var gx = 0, gy = 0.25;  /* default: escorre para baixo */
       if (typeof window._gyroTilt === "function") {
         var t = window._gyroTilt();
-        gy = 0.08 + Math.max(0, t.x) * 0.09;
-        gx = t.y * 0.045;
+        /* Quando inclinado para frente/trás, escorre nessa direção */
+        gy = 0.08 + Math.max(0, t.x) * 0.08;
+        gx = t.y * 0.04;
+        /* Quando flat (tiltX ~0, gota acumula) */
         if (Math.abs(t.x) < 2) { gy = 0.012; gx = 0; }
       }
       return { x: gx, y: gy };
     }
 
-    function drawDrop(d) {
+    function drawDroplet(d) {
       if (d.life >= d.maxLife) return;
+
+      /* Fase de vida: aparece (0-20%), existe (20-80%), some (80-100%) */
       var phase = d.life / d.maxLife;
-      var a = phase < 0.12 ? phase / 0.12
-            : phase > 0.8  ? 1 - (phase - 0.8) / 0.2
-            : 1;
-      d.alpha = a;
+      var alphaFade = phase < 0.12 ? phase / 0.12
+                    : phase > 0.8  ? 1 - (phase - 0.8) / 0.2
+                    : 1;
+      d.alpha = alphaFade;
 
       ctx.save();
 
-      /* Trilha */
+      /* --- Trilha de escorrimento --- */
       if (d.trail.length > 1) {
         ctx.beginPath();
         ctx.moveTo(d.trail[0].x, d.trail[0].y);
-        for (var i = 1; i < d.trail.length; i++) ctx.lineTo(d.trail[i].x, d.trail[i].y);
-        ctx.strokeStyle = "rgba(180,220,255," + (a * 0.18) + ")";
-        ctx.lineWidth = d.r * 0.5;
+        for (var i = 1; i < d.trail.length; i++) {
+          ctx.lineTo(d.trail[i].x, d.trail[i].y);
+        }
+        var trailAlpha = d.alpha * 0.18;
+        ctx.strokeStyle = "rgba(180,220,255," + trailAlpha + ")";
+        ctx.lineWidth = d.r * 0.55;
         ctx.lineCap = "round";
         ctx.stroke();
       }
 
-      /* Corpo */
-      var flat = typeof window._gyroTilt === "function" && Math.abs(window._gyroTilt().x) < 2;
-      var ry = flat ? d.r * 0.44 : d.r;
+      /* --- Corpo da gota --- */
       var g = ctx.createRadialGradient(
         d.x - d.r * 0.28, d.y - d.r * 0.32, d.r * 0.05,
-        d.x, d.y, d.r);
-      g.addColorStop(0,   "rgba(255,255,255," + (a * 0.84) + ")");
-      g.addColorStop(0.3, "rgba(210,235,255," + (a * 0.56) + ")");
-      g.addColorStop(0.7, "rgba(160,205,245," + (a * 0.38) + ")");
-      g.addColorStop(1,   "rgba(120,180,235," + (a * 0.18) + ")");
+        d.x, d.y, d.r
+      );
+      /* Reflexo interno: branco em cima, azul translúcido */
+      g.addColorStop(0,   "rgba(255,255,255," + (d.alpha * 0.82) + ")");
+      g.addColorStop(0.3, "rgba(210,235,255," + (d.alpha * 0.55) + ")");
+      g.addColorStop(0.7, "rgba(160,205,245," + (d.alpha * 0.38) + ")");
+      g.addColorStop(1,   "rgba(120,180,235," + (d.alpha * 0.18) + ")");
 
+      /* Forma: elipse (aplainada quando flat) */
+      var ry = d.flat ? d.r * 0.45 : d.r;
       ctx.beginPath();
       ctx.ellipse(d.x, d.y, d.r * 0.85, ry, 0, 0, Math.PI * 2);
       ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = "rgba(200,230,255," + (a * 0.28) + ")";
+
+      /* Borda reflexiva */
+      ctx.beginPath();
+      ctx.ellipse(d.x, d.y, d.r * 0.85, ry, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(200,230,255," + (d.alpha * 0.28) + ")";
       ctx.lineWidth = 0.7;
       ctx.stroke();
 
-      /* Especular */
+      /* Reflexo de especular (pontinho branco) */
       ctx.beginPath();
       ctx.arc(d.x - d.r * 0.26, d.y - d.r * 0.28, d.r * 0.18, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255," + (a * 0.75) + ")";
+      ctx.fillStyle = "rgba(255,255,255," + (d.alpha * 0.75) + ")";
       ctx.fill();
 
       ctx.restore();
     }
 
-    function updateDrop(d) {
+    function updateDroplet(d) {
       d.life++;
       if (d.life >= d.maxLife) return;
-      var g = gravity();
-      var flat = typeof window._gyroTilt === "function" && Math.abs(window._gyroTilt().x) < 2;
+
+      var g = getGravity();
+
+      /* Verificar se está "flat" (telefone na horizontal) */
+      var flat = (typeof window._gyroTilt === "function") &&
+                 Math.abs(window._gyroTilt().x) < 2;
+      d.flat = flat;
+
+      /* Escorrimento: apenas quando não está flat */
       if (!flat) {
         d.vx += g.x * 0.1;
         d.vy += g.y * 0.1;
+        /* Resistência da superfície (vidro) */
         d.vx *= 0.96;
         d.vy *= 0.97;
-        d.x  += d.vx;
-        d.y  += d.vy;
+        d.x += d.vx;
+        d.y += d.vy;
+
+        /* Gravar trilha */
         d.trail.push({ x: d.x, y: d.y });
         if (d.trail.length > d.trailMax) d.trail.shift();
       }
+
+      /* Limites de tela */
       if (d.x < 0) { d.x = 0; d.vx = Math.abs(d.vx) * 0.4; }
       if (d.x > W) { d.x = W; d.vx = -Math.abs(d.vx) * 0.4; }
       if (d.y > H + 20) d.life = d.maxLife;
@@ -1472,30 +1317,44 @@
 
     function loop() {
       ctx.clearRect(0, 0, W, H);
-      while (drops.length < MAX_DROPS) drops.push(makeDrop());
-      for (var i = drops.length - 1; i >= 0; i--) {
-        updateDrop(drops[i]);
-        if (drops[i].life >= drops[i].maxLife) drops.splice(i, 1);
-        else drawDrop(drops[i]);
+
+      /* Adicionar novas gotas */
+      while (droplets.length < MAX_DROPS) {
+        droplets.push(createDroplet());
       }
+
+      for (var i = droplets.length - 1; i >= 0; i--) {
+        var d = droplets[i];
+        updateDroplet(d);
+        if (d.life >= d.maxLife) {
+          droplets.splice(i, 1);
+        } else {
+          drawDroplet(d);
+        }
+      }
+
       raf = requestAnimationFrame(loop);
     }
 
-    function check() {
+    /* Ativar/desativar com o clima */
+    function checkWeather() {
       var w = html.getAttribute("data-weather");
-      var run = (w === "rain" || w === "storm") && !prefersReducedMotion;
-      if (run && !active) {
-        active = true; drops = []; loop();
-      } else if (!run && active) {
+      var shouldRun = (w === "rain" || w === "storm") && !prefersReducedMotion;
+      if (shouldRun && !active) {
+        active = true;
+        droplets = [];
+        loop();
+      } else if (!shouldRun && active) {
         active = false;
         if (raf) { cancelAnimationFrame(raf); raf = null; }
         ctx.clearRect(0, 0, W, H);
       }
     }
 
-    new MutationObserver(function() { check(); })
-      .observe(html, { attributes: true, attributeFilter: ["data-weather"] });
-    check();
+    /* Observar mudanças de data-weather */
+    var weatherObs = new MutationObserver(function() { checkWeather(); });
+    weatherObs.observe(html, { attributes: true, attributeFilter: ["data-weather"] });
+    checkWeather();
   })();
 
 })();
