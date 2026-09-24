@@ -294,17 +294,62 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-   Controles climáticos
+   Controles da cena: tema + clima lado a lado
    ------------------------------------------------------------------------- */
-.scene-controls {
-  position: relative;
+.scene-controls-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: .35rem;
+  justify-content: center;
+  gap: .45rem;
+  position: relative;
   z-index: 12;
 }
 
+.scene-controls {
+  position: relative;
+}
+
+/* Botão de clima: mesmo tamanho do toggle de tema, apenas ícone */
+.weather-btn {
+  width: 3.6rem;
+  height: 2rem;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  color: var(--ink-dim);
+  backdrop-filter: blur(.35rem);
+  -webkit-backdrop-filter: blur(.35rem);
+  cursor: pointer;
+  box-shadow: var(--shadow-inset), var(--shadow-1);
+  font: inherit;
+  font-size: var(--fs-small);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--dur-2) var(--ease-royal), border-color var(--dur-2) var(--ease-royal), color var(--dur-2) var(--ease-royal);
+}
+
+.weather-btn .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.weather-btn:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+
+.weather-btn:focus-visible,
+.weather-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Legado: .scene-control genérico (páginas de blog que possam usar) */
 .scene-control {
   min-height: 44px;
   padding: .55rem .9rem;
@@ -321,17 +366,6 @@ body {
   display: inline-flex;
   align-items: center;
   gap: .45rem;
-}
-
-.scene-control:hover {
-  border-color: var(--accent);
-  background: var(--surface-hover);
-}
-
-.scene-control:focus-visible,
-.weather-select:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
 }
 
 .weather-panel {
@@ -501,6 +535,21 @@ body.is-leaving .container {
   transition: transform 0.26s var(--ease-royal);
 }
 
+/* Canvas de respingos de chuva: cobre toda a tela, acima de tudo */
+#rainCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+html[data-weather="rain"] #rainCanvas,
+html[data-weather="storm"] #rainCanvas {
+  opacity: 1;
+}
+
 .scene {
   position: fixed;
   inset: 0;
@@ -510,14 +559,27 @@ body.is-leaving .container {
   contain: strict;
 }
 
-/* --- Estrelas (só à noite) --- */
+/* Wrapper de perspectiva 3D: giroscópio move todo o conteúdo da cena.
+   A margem negativa (-8%) garante que ao inclinar não apareçam bordas
+   pretas, pois há conteúdo além dos limites visíveis. */
+.scene__gyro-wrap {
+  position: absolute;
+  inset: -8%;
+  transform-style: flat;   /* flat: evita bugs de compositing em mobile */
+  will-change: transform;
+  transform: perspective(900px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px);
+  transition: none;   /* suavização via JS (lerp), não via CSS transition */
+}
+
+/* --- Estrelas (só à noite) ---
+   Com o gyro-wrap em inset: -8%, os filhos com inset:0 cobrem toda
+   a área do wrapper (que é 116% da cena), garantindo sem bordas. */
 .scene__stars {
   position: absolute;
   inset: 0;
   background-image: url("./assets/estrelas.webp");
   background-size: 512px 512px;
   opacity: 0.75;
-  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.012px), 0);
   transition: opacity var(--dur-3) var(--ease-royal);
 }
 
@@ -531,11 +593,11 @@ html.light .scene__stars {
   top: clamp(6%, 9vh, 14%);
   right: clamp(8%, 14vw, 22%);
   width: clamp(54px, 7vw, 96px);
+  height: clamp(54px, 7vw, 96px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 34%, #fdf8e8, #e8e2cc 58%, #cfc9b2 100%);
+  background: radial-gradient(circle at 44% 38%, #fdf8e8, #e8e2cc 58%, #cfc9b2 100%);
   box-shadow: 0 0 40px 14px rgba(226, 226, 208, 0.22), 0 0 140px 60px rgba(180, 198, 230, 0.14);
-  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.02px), 0);
   transition: background var(--dur-3) var(--ease-royal), box-shadow var(--dur-3) var(--ease-royal);
 }
 
@@ -560,7 +622,9 @@ html.light .scene__haze {
 /* --- Nuvens ---
    Dois ladrilhos idênticos lado a lado; o conjunto desliza exatamente a
    largura de um deles, então a emenda nunca aparece. A duração é dividida
-   por --wind: quanto mais forte o vento, mais depressa elas passam. */
+   por --wind: quanto mais forte o vento, mais depressa elas passam.
+   --cloud-offset permite empurrar lateralmente via giroscópio sem quebrar
+   o loop, pois o offset é aplicado no gyro-wrap pai. */
 .scene__clouds {
   --tile: clamp(760px, 120vw, 1280px);
   position: absolute;
@@ -568,8 +632,10 @@ html.light .scene__haze {
   display: flex;
   width: calc(var(--tile) * 2);
   pointer-events: none;
+  /* A animação usa play-state: running sempre — o gyro move o wrap pai */
   animation: cloud-drift var(--cloud-dur, 150s) linear infinite;
-  animation-duration: calc(var(--cloud-dur, 150s) / var(--wind, 1));
+  animation-duration: calc(var(--cloud-dur, 150s) / max(0.35, var(--wind, 1)));
+  animation-play-state: running;
   will-change: transform;
 }
 
@@ -583,7 +649,8 @@ html.light .scene__haze {
 
 .scene__clouds--far {
   --cloud-dur: 220s;
-  top: calc(2% + var(--scroll-y, 0) * -0.014px);
+  /* top fixo: o gyro-wrap faz a paralaxe em translateY */
+  top: 2%;
   height: clamp(170px, 30vh, 360px);
   opacity: 0.5;
 }
@@ -591,7 +658,7 @@ html.light .scene__haze {
 .scene__clouds--mid {
   --cloud-dur: 132s;
   --tile: clamp(820px, 135vw, 1420px);
-  top: calc(10% + var(--scroll-y, 0) * -0.026px);
+  top: 10%;
   height: clamp(190px, 33vh, 400px);
   opacity: 0.68;
 }
@@ -601,7 +668,7 @@ html.light .scene__haze {
 .scene__clouds--near {
   --cloud-dur: 74s;
   --tile: clamp(900px, 150vw, 1560px);
-  top: calc(26% + var(--scroll-y, 0) * -0.05px);
+  top: 26%;
   height: clamp(150px, 26vh, 320px);
   opacity: 0.34;
 }
@@ -656,7 +723,7 @@ html.light .scene__clouds i {
   bottom: 0;
   height: var(--palace-h);
   aspect-ratio: 2400 / 1180;
-  transform: translate3d(-50%, calc(var(--scroll-y, 0) * -0.008px), 0);
+  transform: translate3d(-50%, 0, 0);
 }
 
 .scene__palace,
@@ -2335,7 +2402,8 @@ body { background: var(--weather-body-bg, var(--body-bg)); }
   right: auto;
   left: var(--orb-x);
   width: var(--orb-size);
-  transform: translate3d(-50%, calc(var(--scroll-y, 0) * -0.018px), 0);
+  height: var(--orb-size);
+  transform: translate3d(-50%, -50%, 0);
   transition: left 2.2s var(--ease-royal), top 2.2s var(--ease-royal), width 2.2s var(--ease-royal), height 2.2s var(--ease-royal), background 2.2s ease, box-shadow 2.2s ease, filter 2.2s ease;
   will-change: left, top, width, transform, filter;
   overflow: hidden;
@@ -2343,75 +2411,125 @@ body { background: var(--weather-body-bg, var(--body-bg)); }
 }
 
 html[data-scene-time="day"] .scene__orb {
+  /* Sol real: centro branco-amarelo quente, limbo mais escuro/laranja, corona suave */
   background:
-    radial-gradient(circle at 34% 30%, #fffef0 0 18%, #fff8c9 32%, #ffd979 62%, rgba(255,193,74,.96) 100%);
+    radial-gradient(circle at 50% 50%,
+      #ffffff 0 5%,
+      #fffde8 10%,
+      #fff3a0 24%,
+      #ffd84a 46%,
+      #ffb730 66%,
+      #ff9500 82%,
+      rgba(255,130,20,.92) 100%);
   box-shadow:
-    0 0 28px 8px rgba(255,239,182,.42),
-    0 0 100px 38px rgba(255,217,122,.26),
-    0 0 190px 78px rgba(255,194,88,.11);
-  filter: saturate(calc(.92 + var(--light-strength) * .18)) brightness(calc(.94 + var(--light-strength) * .28));
+    /* luz central intensa */
+    0 0 0 2px rgba(255,220,120,.55),
+    0 0 22px 6px rgba(255,245,180,.70),
+    /* corona interna */
+    0 0 60px 22px rgba(255,215,100,.42),
+    /* halo difuso de radiação */
+    0 0 140px 55px rgba(255,190,80,.24),
+    /* dispersão atmosférica */
+    0 0 280px 110px rgba(255,165,60,.11);
+  filter:
+    saturate(calc(.88 + var(--light-strength) * .22))
+    brightness(calc(.90 + var(--light-strength) * .32));
 }
 
+/* Grânulos fotosféricos em rotação lenta */
 html[data-scene-time="day"] .scene__orb::before {
   content: "";
   position: absolute;
-  inset: -4%;
+  inset: -2%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 44% 34%, rgba(255,255,255,.80) 0 7%, transparent 11%),
-    repeating-conic-gradient(from 12deg, rgba(255,255,255,.08) 0 7deg, transparent 7deg 15deg);
+    /* ponto brilhante de reflexo */
+    radial-gradient(circle at 38% 32%, rgba(255,255,255,.92) 0 5%, transparent 9%),
+    /* grânulos: texturas radiais concêntricas */
+    repeating-conic-gradient(from 0deg at 50% 50%,
+      rgba(255,255,255,.07) 0deg 4deg, transparent 4deg 9deg),
+    repeating-conic-gradient(from 22deg at 50% 50%,
+      rgba(255,140,0,.06) 0deg 5deg, transparent 5deg 11deg);
   mix-blend-mode: screen;
-  animation: solar-grain 16s linear infinite;
+  animation: solar-grain 28s linear infinite;
 }
 
+/* Corona pulsante e raios de luz */
 html[data-scene-time="day"] .scene__orb::after {
   content: "";
   position: absolute;
-  inset: -35%;
+  inset: -55%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,236,159,.38), rgba(255,210,116,0) 62%);
+  background:
+    radial-gradient(circle at 50% 50%,
+      rgba(255,248,200,.45) 0 18%,
+      rgba(255,220,120,.22) 35%,
+      rgba(255,180,80,.08) 58%,
+      transparent 72%);
   z-index: -1;
-  animation: solar-bloom 6s ease-in-out infinite;
+  animation: solar-bloom 8s ease-in-out infinite;
+  mix-blend-mode: screen;
 }
 
 html[data-scene-time="night"] .scene__orb {
+  /* Superfície lunar: centro mais iluminado, limbo escuro, tons acinzentados quentes */
   background:
-    radial-gradient(circle at 38% 34%, #fdf8e8 0 13%, #eee8d0 54%, #cbc4aa 100%);
+    radial-gradient(circle at 44% 38%,
+      #f8f5e8 0 8%,
+      #ede8d4 22%,
+      #d8d2bc 42%,
+      #c4bda8 60%,
+      #b0aa96 78%,
+      #9e9888 100%);
   box-shadow:
-    0 0 28px 10px rgba(226,226,208,.24),
-    0 0 110px 48px rgba(180,198,230,.18),
-    0 0 190px 78px rgba(123,150,210,.08);
-  filter: brightness(calc(.86 + var(--light-strength) * .42)) contrast(1.04);
+    0 0 18px 5px rgba(220,220,195,.20),
+    0 0 70px 28px rgba(180,195,230,.14),
+    0 0 160px 65px rgba(130,155,210,.07);
+  filter: brightness(calc(.72 + var(--light-strength) * .50)) contrast(1.06) saturate(.82);
 }
 
+/* Mares lunares (maria): manchas escuras que dão identidade à lua */
 html[data-scene-time="night"] .scene__orb::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 26% 30%, rgba(109,105,90,.32) 0 4%, transparent 6%),
-    radial-gradient(circle at 58% 25%, rgba(116,111,95,.24) 0 5%, transparent 7%),
-    radial-gradient(circle at 72% 57%, rgba(106,101,87,.20) 0 7%, transparent 9%),
-    radial-gradient(circle at 38% 68%, rgba(112,108,93,.22) 0 6%, transparent 8%),
-    radial-gradient(circle at 74% 24%, rgba(94,90,78,.17) 0 3%, transparent 5%);
-  opacity: .62;
+    /* Mare Imbrium */
+    radial-gradient(ellipse 26% 22% at 34% 34%, rgba(90,86,76,.38) 0%, transparent 100%),
+    /* Mare Serenitatis */
+    radial-gradient(ellipse 16% 18% at 58% 28%, rgba(98,94,82,.30) 0%, transparent 100%),
+    /* Mare Tranquillitatis */
+    radial-gradient(ellipse 20% 14% at 66% 50%, rgba(102,98,86,.26) 0%, transparent 100%),
+    /* Mare Crisium */
+    radial-gradient(ellipse 9% 10% at 76% 32%, rgba(86,82,72,.24) 0%, transparent 100%),
+    /* Oceanus Procellarum */
+    radial-gradient(ellipse 18% 30% at 26% 58%, rgba(88,84,74,.22) 0%, transparent 100%),
+    /* crateras pequenas */
+    radial-gradient(circle 2% at 48% 62%, rgba(80,76,68,.18) 0%, transparent 100%),
+    radial-gradient(circle 1.5% at 72% 66%, rgba(82,78,70,.16) 0%, transparent 100%),
+    /* gradiente de curvatura: limbo escurece naturalmente */
+    radial-gradient(circle at 50% 50%, transparent 62%, rgba(40,36,28,.35) 100%);
+  opacity: .85;
   mix-blend-mode: multiply;
 }
 
+/* Sombra da fase lunar: cresce/encolhe via --moon-illumination e --moon-shadow-shift */
 html[data-scene-time="night"] .scene__orb::after {
   content: "";
   position: absolute;
   top: -4%;
   bottom: -4%;
   width: 108%;
-  left: calc(50% + (var(--moon-shadow-shift) * 50%));
+  /* O centro da sombra desloca conforme a fase */
+  left: calc(50% + var(--moon-shadow-shift) * 52%);
   transform: translateX(-50%);
   border-radius: 50%;
-  background: #111735;
+  /* Gradiente suave para simular o terminador realista */
+  background: radial-gradient(ellipse 100% 100% at 50% 50%, #0c1228 55%, rgba(12,18,40,.85) 80%, transparent 100%);
   opacity: calc(1 - var(--moon-illumination));
   mix-blend-mode: multiply;
-  transition: left 2.2s var(--ease-royal), opacity 2.2s ease;
+  transition: left 2.4s var(--ease-royal), opacity 2.4s ease;
 }
 
 @keyframes solar-grain {
